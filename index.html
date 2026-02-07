@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
@@ -1340,6 +1340,86 @@ const game = {
     }
   },
 
+  // 🌐 HYBRID BACKEND ADAPTER
+  // Automatically detects environment and uses appropriate backend method
+  
+  // ⚠️ IMPORTANT: Replace with your actual Apps Script Web App URL
+  BACKEND_API_URL: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID_HERE/exec',
+  
+  get isAppsScript() {
+    // Check if we're running in Apps Script environment
+    return typeof google !== 'undefined' && 
+           google.script && 
+           google.script.run;
+  },
+
+  async backend(functionName, data = null) {
+    // Apps Script environment - use google.script.run (direct)
+    if (this.isAppsScript) {
+      return new Promise((resolve, reject) => {
+        try {
+          const runner = google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject);
+          
+          // Call the function with or without data
+          if (data !== null) {
+            runner[functionName](data);
+          } else {
+            runner[functionName]();
+          }
+        } catch(error) {
+          reject(error);
+        }
+      });
+    }
+    
+    // GitHub Pages / External environment - call API via fetch
+    try {
+      console.log(`🌐 API call: ${functionName}`);
+      
+      const response = await fetch(this.BACKEND_API_URL, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: functionName,
+          data: data
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log(`✅ API response:`, result);
+      return result;
+      
+    } catch(error) {
+      console.error(`❌ API call failed:`, error);
+      
+      // Return mock success for non-critical functions
+      if (functionName === 'trackEvent') {
+        return { success: true, message: 'Tracking skipped (API unavailable)' };
+      }
+      
+      if (functionName === 'logTransaction') {
+        return { success: true, message: 'Transaction logging skipped (API unavailable)' };
+      }
+      
+      // For critical functions, return failure
+      return { 
+        success: false, 
+        message: `API call failed: ${error.message}`,
+        error: error.toString()
+      };
+    }
+  },
+
   state: {
     day: 1,
     season: 0,
@@ -1721,18 +1801,17 @@ const game = {
     try {
       const clientId = this.state.playerId; // Použij player ID jako client_id
       
-      if (clientId && typeof google !== 'undefined' && google.script && google.script.run) {
-        // Asynchronní volání do backendu (neblokuje hru)
-        google.script.run
-          .withSuccessHandler(() => {
+      if (clientId) {
+        // Use hybrid backend adapter
+        this.backend('trackEvent', { clientId, eventName, params })
+          .then(() => {
             // Success - tiché logování (neruší hráče)
             console.log('✓ GA4 tracked:', eventName);
           })
-          .withFailureHandler((error) => {
+          .catch((error) => {
             // Failure - tiché logování (tracking nesmí crashnout hru)
             console.warn('GA4 tracking failed:', error);
-          })
-          .trackEvent(clientId, eventName, params);
+          });
       }
     } catch(e) {
       // Catch any errors - tracking nesmí nikdy crashnout hru
@@ -1847,11 +1926,16 @@ const game = {
     this.state.fireFuel = 0; // 🔥
     this.state.unlockedRecipes = ['stick', 'rope', 'bowl', 'trap', 'basket'];
     
+    // 🌐 Environment Detection
+    const environment = this.isAppsScript ? 'Apps Script (Full Features)' : 'Standalone (Local Save)';
+    console.log(`🎮 Doupě 2 - Running in: ${environment}`);
+    
     // GA4 Tracking - Page View
     this.track('page_view', {
       page_title: 'Doupě - Survival Crafting',
       page_location: window.location.href,
-      engagement_time_msec: '100'
+      engagement_time_msec: '100',
+      environment: environment
     });
     
     // GA4 Tracking - Game Start
@@ -1859,7 +1943,8 @@ const game = {
       starting_food: 60,
       starting_water: 60,
       starting_temperature: 15,
-      is_returning_player: this.state.bestRun > 0
+      is_returning_player: this.state.bestRun > 0,
+      environment: environment
     });
     
     // Atmosférický úvod
@@ -1873,6 +1958,12 @@ const game = {
     this.log('💡 TEPLOTA: V mrazu spotřebujete víc jídla. Postavte krb, zatopte, nebo budete mrznou.', 'danger');
     this.log('🔥 OHEŇ: Luk → Bow Drill (80%) nebo Křesadlo (100%). Potřebný pro sušení masa!', 'success');
     this.log('💰 EKONOMIKA: Prodávej suroviny 💰 za zlato → Kup jídlo/vodu 🏷️. Risk vs. reward!', 'success');
+    
+    // Environment indicator
+    if (!this.isAppsScript) {
+      this.log('⚠️ Standalone mód: Žebříček pouze lokální. Pro plné funkce použij Apps Script.', 'warning');
+    }
+    
     this.log('', 'info');
     
     this.render();
@@ -1935,22 +2026,18 @@ const game = {
     });
     
     // Backend transaction logging (fire & forget)
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withFailureHandler((error) => {
-          console.warn('Transaction log failed:', error);
-        })
-        .logTransaction({
-          playerId: this.state.playerId,
-          type: 'sell',
-          itemId: itemId,
-          itemName: item.name,
-          quantity: quantity,
-          goldAmount: goldEarned,
-          newBalance: this.state.gold,
-          day: this.state.day
-        });
-    }
+    this.backend('logTransaction', {
+      playerId: this.state.playerId,
+      type: 'sell',
+      itemId: itemId,
+      itemName: item.name,
+      quantity: quantity,
+      goldAmount: goldEarned,
+      newBalance: this.state.gold,
+      day: this.state.day
+    }).catch((error) => {
+      console.warn('Transaction log failed:', error);
+    });
     
     this.render();
   },
@@ -1990,22 +2077,18 @@ const game = {
     });
     
     // Backend transaction logging (fire & forget)
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withFailureHandler((error) => {
-          console.warn('Transaction log failed:', error);
-        })
-        .logTransaction({
-          playerId: this.state.playerId,
-          type: 'buy',
-          itemId: itemId,
-          itemName: item.name,
-          quantity: quantity,
-          goldAmount: goldNeeded,
-          newBalance: this.state.gold,
-          day: this.state.day
-        });
-    }
+    this.backend('logTransaction', {
+      playerId: this.state.playerId,
+      type: 'buy',
+      itemId: itemId,
+      itemName: item.name,
+      quantity: quantity,
+      goldAmount: goldNeeded,
+      newBalance: this.state.gold,
+      day: this.state.day
+    }).catch((error) => {
+      console.warn('Transaction log failed:', error);
+    });
     
     this.render();
   },
@@ -2648,20 +2731,27 @@ const game = {
     nicknameInput.disabled = true;
     nicknameInput.value = 'Ukládám...';
     
-    google.script.run
-      .withSuccessHandler((response) => {
-        console.log('High score saved:', response);
-        // Zavři modal a zobraz game over
-        this.closeModal('nickname-modal');
-        this.showGameOverScreen(`🏆 ${response.message}`);
+    this.backend('saveHighScore', data)
+      .then((response) => {
+        if (response.success) {
+          console.log('High score saved:', response);
+          this.closeModal('nickname-modal');
+          this.showGameOverScreen(`🏆 ${response.message}`);
+        } else if (response.standalone) {
+          // Standalone mode - save locally only
+          console.log('Standalone mode - saved locally');
+          this.closeModal('nickname-modal');
+          this.showGameOverScreen('💀 GAME OVER (Local save)');
+        } else {
+          throw new Error(response.message || 'Unknown error');
+        }
       })
-      .withFailureHandler((error) => {
+      .catch((error) => {
         console.error('Error saving high score:', error);
-        alert('Chyba při ukládání: ' + error.message);
+        alert('Chyba při ukládání: ' + (error.message || error));
         nicknameInput.disabled = false;
         nicknameInput.value = nickname;
-      })
-      .saveHighScore(data);
+      });
   },
 
   skipNickname() {
@@ -2742,22 +2832,23 @@ const game = {
     `;
     document.body.appendChild(loadingModal);
     
-    // Načti data z Sheets
-    google.script.run
-      .withSuccessHandler((response) => {
+    // Načti data z Sheets (přes API)
+    this.backend('getLeaderboard')
+      .then((response) => {
         if (response.success) {
           this.renderLeaderboard(response.data);
         } else {
-          alert('Chyba při načítání žebříčku: ' + response.message);
+          // API failed - show error or standalone
+          console.error('Leaderboard load failed:', response);
+          alert('Chyba při načítání žebříčku: ' + (response.message || response.error));
           this.closeModal('leaderboard-modal');
         }
       })
-      .withFailureHandler((error) => {
-        console.error('Error loading leaderboard:', error);
+      .catch((error) => {
+        console.error('Leaderboard error:', error);
         alert('Chyba při načítání žebříčku: ' + error.message);
         this.closeModal('leaderboard-modal');
-      })
-      .getLeaderboard();
+      });
   },
 
   renderLeaderboard(data) {

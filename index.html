@@ -1,411 +1,3219 @@
-/**
- * 🏠 Doupě - Hra o přežití a craftování by Ondrex
- * Začínáme pomalu, s citem...
- */
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>🏠 Doupě 2 - Survival Crafting</title>
 
-// ═══════════════════════════════════════════════════════════════
-// 🔧 KONFIGURACE - VYPLŇ SVOJE HODNOTY
-// ═══════════════════════════════════════════════════════════════
+<!-- Google Analytics -->
+<!-- 
+  ⚠️ CLIENT-SIDE GA4 NEFUNGUJE V APPS SCRIPT (iframe + cross-origin issues)
+  Používáme SERVER-SIDE tracking přes Measurement Protocol API
+  viz kod.gs -> trackEvent() funkce
+-->
+<!-- End Google Analytics -->
 
-const GA4_MEASUREMENT_ID = 'G-SZJL9L81VE'; // Tvoje GA4 Measurement ID
-const GA4_API_SECRET = 'VLOZ_SVUJ_API_SECRET_ZDE'; // Vytvoř v GA4 Admin → Data Streams → Measurement Protocol API secrets
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "vct90i7r4t");
+</script>
 
-// ═══════════════════════════════════════════════════════════════
-// 📊 GOOGLE ANALYTICS 4 - SERVER-SIDE TRACKING
-// ═══════════════════════════════════════════════════════════════
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap');
 
-/**
- * Server-side tracking do GA4 pomocí Measurement Protocol
- * @param {string} clientId - Unique user ID
- * @param {string} eventName - Název eventu
- * @param {object} eventParams - Parametry eventu
- */
-function trackEvent(clientId, eventName, eventParams = {}) {
-  try {
-    // Endpoint pro GA4 Measurement Protocol
-    const url = `https://www.google-analytics.com/mp/collect?measurement_id=${GA4_MEASUREMENT_ID}&api_secret=${GA4_API_SECRET}`;
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-touch-callout: none;
+}
+
+html {
+  /* Prevent iOS zoom on input focus */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Smooth scrolling for better UX */
+  scroll-behavior: smooth;
+  /* iOS safe area support */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #1a1410 0%, #2d2416 50%, #1a1410 100%);
+  font-family: 'Crimson Pro', serif;
+  color: #e8d5b7;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  min-height: -webkit-fill-available; /* iOS Safari fix */
+  padding: 20px;
+  position: relative;
+  overflow-x: hidden;
+  /* Better touch scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent pull-to-refresh on mobile */
+  overscroll-behavior-y: contain;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 10px 5px;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(139, 90, 43, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(87, 62, 38, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  animation: ambientGlow 15s ease-in-out infinite;
+}
+
+@keyframes ambientGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+#game-container {
+  width: 100%;
+  max-width: 1000px;
+  background: linear-gradient(145deg, rgba(44, 35, 25, 0.95), rgba(55, 42, 30, 0.95));
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 
+    0 30px 80px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(139, 90, 43, 0.3);
+  position: relative;
+  z-index: 1;
+  animation: containerAppear 0.6s ease-out;
+  /* Better touch handling */
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+  #game-container {
+    padding: 16px;
+    border-radius: 16px;
+    max-width: 100%;
+    margin: 0 10px;
+    /* Ensure proper touch scrolling */
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@keyframes containerAppear {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid rgba(139, 90, 43, 0.3);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  #header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  #header h2 {
+    font-size: 20px !important;
+  }
+  
+  #header h3 {
+    font-size: 11px !important;
+    order: 3;
+    flex-basis: 100%;
+  }
+}
+
+#header h2 {
+  font-family: 'Space Mono', monospace;
+  font-size: 24px;
+  color: #d4a574;
+  text-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
+  letter-spacing: 2px;
+}
+
+#header h3 {
+  font-family: 'Crimson Pro', serif;
+  font-size: 14px;
+  color: #9a8670;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ember-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(255, 120, 40, 0.6));
+  animation: emberGlow 3s ease-in-out infinite;
+}
+
+@keyframes emberGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 120, 40, 0.6)); }
+  50% { filter: drop-shadow(0 0 12px rgba(255, 100, 20, 0.9)); }
+}
+
+#season-info {
+  text-align: right;
+  font-family: 'Space Mono', monospace;
+}
+
+@media (max-width: 768px) {
+  #season-info {
+    text-align: center;
+  }
+  
+  #season-info .big {
+    font-size: 18px !important;
+  }
+  
+  #season-info .small {
+    font-size: 11px !important;
+  }
+}
+
+#season-info .big {
+  font-size: 20px;
+  font-weight: 700;
+  color: #d4a574;
+  display: block;
+}
+
+#season-info .small {
+  font-size: 12px;
+  color: #a08060;
+  opacity: 0.8;
+}
+/* 🔥 FIRE INDICATOR STYLES */
+.fire-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  transition: all 0.3s ease;
+}
+
+.fire-indicator.active {
+  background: rgba(255, 120, 40, 0.2);
+  border: 1px solid rgba(255, 120, 40, 0.4);
+}
+
+.fire-indicator.active .fire-icon {
+  animation: fireFlicker 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(255, 120, 40, 0.8));
+}
+
+.fire-indicator.active .fire-status {
+  color: #ff9944;
+  font-weight: 700;
+}
+
+.fire-indicator.inactive {
+  background: rgba(60, 50, 40, 0.3);
+  border: 1px solid rgba(100, 80, 60, 0.2);
+  opacity: 0.5;
+}
+
+.fire-indicator.inactive .fire-icon {
+  filter: grayscale(100%) brightness(0.7);
+}
+
+.fire-indicator.inactive .fire-status {
+  color: #6a5d4f;
+}
+
+@keyframes fireFlicker {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+}
+
+@media (max-width: 768px) {
+  .fire-indicator {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+}
+
+/* 💰 GOLD DISPLAY STYLES */
+.gold-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 5px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-family: 'Space Mono', monospace;
+  background: rgba(212, 165, 116, 0.15);
+  border: 1px solid rgba(212, 165, 116, 0.4);
+  transition: all 0.3s ease;
+}
+
+.gold-display:hover {
+  background: rgba(212, 165, 116, 0.25);
+  transform: translateY(-1px);
+}
+
+.gold-icon {
+  font-size: 14px;
+  animation: goldShine 3s ease-in-out infinite;
+}
+
+@keyframes goldShine {
+  0%, 100% { 
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6));
+  }
+  50% { 
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.9));
+  }
+}
+
+.gold-amount {
+  color: #d4a574;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .gold-display {
+    font-size: 11px;
+    padding: 4px 10px;
+  }
+  
+  .gold-amount {
+    font-size: 12px;
+  }
+}
+
+#status-bars {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+@media (max-width: 768px) {
+  #status-bars {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bar {
+  background: rgba(30, 24, 18, 0.6);
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(139, 90, 43, 0.2);
+  transition: all 0.3s ease;
+}
+
+.bar:hover {
+  border-color: rgba(139, 90, 43, 0.4);
+  transform: translateY(-2px);
+}
+
+.bar-label {
+  font-size: 13px;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #b89968;
+}
+
+@media (max-width: 768px) {
+  .bar-label {
+    font-size: 14px;
+  }
+  
+  .bar {
+    padding: 12px 14px !important;
+  }
+  
+  .fill-container {
+    height: 28px !important;
+  }
+  
+  .fill {
+    font-size: 13px !important;
+  }
+}
+
+.fill-container {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  height: 24px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.fill {
+  height: 100%;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  font-family: 'Space Mono', monospace;
+}
+
+.fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+  border-radius: 6px;
+}
+
+.hunger {
+  background: linear-gradient(90deg, #c0504d 0%, #e67e7b 100%);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.water {
+  background: linear-gradient(90deg, #4a90a4 0%, #6fb4c5 100%);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.temperature {
+  background: linear-gradient(90deg, #4a90e4 0%, #6fb4c5 35%, #7bc876 50%, #e8c547 65%, #e67e7b 100%);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
+}
+
+#log {
+  background: rgba(20, 16, 12, 0.7);
+  border-radius: 12px;
+  padding: 12px;
+  height: 140px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  border: 1px solid rgba(139, 90, 43, 0.2);
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+  /* Better touch scrolling */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 768px) {
+  #log {
+    height: 120px;
+    font-size: 11px;
+    padding: 10px;
+    /* Ensure smooth scrolling on touch */
+    scroll-behavior: smooth;
+  }
+}
+
+#log::-webkit-scrollbar {
+  width: 8px;
+}
+
+#log::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+#log::-webkit-scrollbar-thumb {
+  background: rgba(139, 90, 43, 0.4);
+  border-radius: 4px;
+}
+
+#log::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 90, 43, 0.6);
+}
+
+.log-entry {
+  margin-bottom: 6px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  animation: logAppear 0.3s ease-out;
+}
+
+@keyframes logAppear {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.log-info { color: #b8b0a0; background: rgba(184, 176, 160, 0.05); }
+.log-warning { color: #e8c547; background: rgba(232, 197, 71, 0.1); }
+.log-danger { color: #e67e7b; background: rgba(230, 126, 123, 0.1); }
+.log-item { color: #6fb4c5; background: rgba(111, 180, 197, 0.1); }
+.log-success { color: #7bc876; background: rgba(123, 200, 118, 0.1); }
+
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.two-column-layout .section {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .two-column-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.section {
+  background: rgba(40, 32, 24, 0.5);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid rgba(139, 90, 43, 0.2);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #d4a574;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 768px) {
+  .section-title {
+    font-size: 17px;
+  }
+  
+  .section {
+    padding: 14px !important;
+  }
+}
+
+.section-title .icon {
+  font-size: 18px;
+}
+
+.section-content {
+  display: grid;
+  gap: 6px;
+}
+
+/* Crafting recipes: 3-column tile layout */
+#recipes {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1024px) {
+  #recipes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  #recipes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.item-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(20, 16, 12, 0.6);
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 90, 43, 0.15);
+  transition: all 0.2s ease;
+  animation: itemAppear 0.4s ease-out;
+}
+
+@media (max-width: 768px) {
+  .item-card {
+    padding: 12px 14px;
+    gap: 12px;
+  }
+  
+  .item-icon {
+    font-size: 28px !important;
+  }
+  
+  .item-name {
+    font-size: 15px !important;
+  }
+  
+  .item-count {
+    font-size: 16px !important;
+  }
+}
+
+@keyframes itemAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.item-card:hover {
+  border-color: rgba(139, 90, 43, 0.4);
+  transform: translateX(4px);
+  background: rgba(30, 24, 18, 0.7);
+}
+
+.item-icon {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.item-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #d4a574;
+  margin-bottom: 2px;
+}
+
+.item-desc {
+  font-size: 11px;
+  color: #9a8670;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-count {
+  font-weight: 700;
+  font-size: 15px;
+  color: #b89968;
+  font-family: 'Space Mono', monospace;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* 💰 ECONOMY: Sell & Buy Buttons */
+.item-action-btn {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Space Mono', monospace;
+  border: none;
+  border-radius: 6px;
+  margin-left: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.item-sell-btn {
+  background: linear-gradient(135deg, #d4a574, #c9a576);
+  color: #1a1410;
+  border: 1px solid rgba(212, 165, 116, 0.6);
+  box-shadow: 0 2px 4px rgba(212, 165, 116, 0.3);
+}
+
+.item-sell-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(212, 165, 116, 0.5);
+}
+
+.item-sell-btn:active {
+  transform: translateY(0);
+  opacity: 0.8;
+}
+
+.item-buy-btn {
+  background: linear-gradient(135deg, #7bc876, #6fb865);
+  color: #fff;
+  border: 1px solid rgba(123, 200, 118, 0.6);
+  box-shadow: 0 2px 4px rgba(123, 200, 118, 0.3);
+}
+
+.item-buy-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(123, 200, 118, 0.5);
+}
+
+.item-buy-btn:active {
+  transform: translateY(0);
+  opacity: 0.8;
+}
+
+.item-action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.item-action-btn .price-tag {
+  font-size: 10px;
+  opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+  .item-action-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-height: 32px;
+  }
+}
+
+.recipe-card {
+  background: rgba(20, 16, 12, 0.6);
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(139, 90, 43, 0.15);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 768px) {
+  .recipe-card {
+    padding: 10px;
+    min-height: 80px;
+  }
+  
+  .recipe-icon {
+    font-size: 20px !important;
+  }
+  
+  .recipe-name {
+    font-size: 13px !important;
+  }
+  
+  .recipe-materials {
+    font-size: 10px !important;
+  }
+}
+
+.recipe-card.can-craft {
+  border-color: rgba(123, 200, 118, 0.4);
+}
+
+.recipe-card.can-craft:hover {
+  border-color: rgba(123, 200, 118, 0.6);
+  transform: translateY(-3px) scale(1.02);
+  background: rgba(123, 200, 118, 0.1);
+  box-shadow: 0 6px 12px rgba(123, 200, 118, 0.2);
+}
+
+.recipe-card.cannot-craft {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.recipe-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.recipe-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.recipe-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: #d4a574;
+}
+
+.recipe-materials {
+  font-size: 10px;
+  color: #9a8670;
+  font-family: 'Space Mono', monospace;
+  padding: 0;
+  margin-top: auto;
+}
+
+.entity-card {
+  background: rgba(20, 16, 12, 0.6);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 90, 43, 0.15);
+  animation: entityAppear 0.5s ease-out;
+}
+
+@keyframes entityAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.entity-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.entity-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.entity-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.entity-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: #d4a574;
+}
+
+.entity-status {
+  font-size: 11px;
+  color: #9a8670;
+  font-family: 'Space Mono', monospace;
+}
+
+.entity-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.entity-action-btn {
+  flex: 1;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  background: rgba(139, 90, 43, 0.3);
+  color: #d4a574;
+  border: 1px solid rgba(139, 90, 43, 0.4);
+}
+
+@media (max-width: 768px) {
+  .entity-action-btn {
+    padding: 10px 12px;
+    font-size: 12px;
+    min-height: 42px;
+  }
+  
+  .entity-actions {
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+  
+  .entity-action-btn {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 120px;
+  }
+}
+
+.entity-action-btn:hover {
+  background: rgba(139, 90, 43, 0.5);
+  transform: translateY(-2px);
+}
+
+.entity-action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .controls {
+    gap: 8px;
+  }
+  
+  .controls button {
+    flex: 1 1 auto;
+    min-width: 140px;
+  }
+}
+
+button {
+  padding: 12px 22px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Space Mono', monospace;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  /* Better touch handling */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (max-width: 768px) {
+  button {
+    padding: 14px 20px;
+    font-size: 15px;
+    min-height: 48px;
+    /* Increase touch target size */
+    min-width: 48px;
+  }
+}
+
+button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+button:active {
+  transform: translateY(-1px);
+  /* Visual feedback on touch */
+  opacity: 0.8;
+}
+
+.primary {
+  background: linear-gradient(135deg, #8b5a2b 0%, #a67c52 100%);
+  color: #fff;
+  border: 1px solid rgba(212, 165, 116, 0.3);
+}
+
+.primary:hover {
+  background: linear-gradient(135deg, #a67c52 0%, #c9a576 100%);
+}
+
+.danger {
+  background: linear-gradient(135deg, #c0504d 0%, #e67e7b 100%);
+  color: #fff;
+  border: 1px solid rgba(230, 126, 123, 0.3);
+}
+
+.danger:hover {
+  background: linear-gradient(135deg, #e67e7b 0%, #f29b98 100%);
+}
+
+.event-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, rgba(139, 90, 43, 0.95), rgba(166, 124, 82, 0.95));
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(212, 165, 116, 0.4);
+  animation: slideIn 0.5s ease-out;
+  z-index: 1000;
+  max-width: 300px;
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .event-notification {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    font-size: 13px;
+    padding: 12px 16px;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 15px;
+  color: #6a5d4f;
+  font-style: italic;
+  font-size: 13px;
+}
+
+.season-indicator {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+.season-spring { background: rgba(123, 200, 118, 0.2); color: #7bc876; }
+.season-summer { background: rgba(232, 197, 71, 0.2); color: #e8c547; }
+.season-autumn { background: rgba(212, 165, 116, 0.2); color: #d4a574; }
+.season-winter { background: rgba(111, 180, 197, 0.2); color: #6fb4c5; }
+
+/* Leaderboard & Nickname Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease-out;
+  /* Prevent scroll behind modal */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Prevent body scroll leak */
+  overscroll-behavior: contain;
+}
+
+.modal-content {
+  background: linear-gradient(145deg, #2c231a, #372a1e);
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 600px;
+  width: 90%;
+  border: 2px solid rgba(139, 90, 43, 0.4);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+  animation: scaleIn 0.4s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+  /* Better scrolling on touch devices */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent margin collapse */
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    padding: 20px;
+    width: 95%;
+    border-radius: 16px;
+  }
+  
+  .modal-title {
+    font-size: 22px !important;
+  }
+  
+  .leaderboard-table {
+    font-size: 13px !important;
+  }
+  
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 8px 6px !important;
+  }
+  
+  .rank-badge {
+    width: 26px !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    font-size: 12px !important;
+  }
+  
+  .modal-btn {
+    padding: 12px 18px !important;
+    font-size: 13px !important;
+  }
+  
+  .nickname-input {
+    font-size: 15px !important;
+  }
+}
+
+.modal-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 28px;
+  color: #d4a574;
+  text-align: center;
+  margin-bottom: 20px;
+  text-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
+}
+
+.nickname-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px; /* iOS needs 16px+ to prevent auto-zoom */
+  font-family: 'Crimson Pro', serif;
+  background: rgba(20, 16, 12, 0.8);
+  border: 2px solid rgba(139, 90, 43, 0.3);
+  border-radius: 10px;
+  color: #e8d5b7;
+  margin: 15px 0;
+  transition: border-color 0.2s;
+}
+
+.nickname-input:focus {
+  outline: none;
+  border-color: rgba(139, 90, 43, 0.6);
+}
+
+.nickname-info {
+  text-align: center;
+  color: #b89968;
+  font-size: 14px;
+  margin: 10px 0;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.leaderboard-table th {
+  background: rgba(139, 90, 43, 0.2);
+  padding: 12px;
+  text-align: left;
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  color: #d4a574;
+  border-bottom: 2px solid rgba(139, 90, 43, 0.3);
+}
+
+.leaderboard-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(139, 90, 43, 0.1);
+  font-size: 14px;
+}
+
+.leaderboard-table tr:hover {
+  background: rgba(139, 90, 43, 0.1);
+}
+
+.rank-badge {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  border-radius: 50%;
+  font-weight: 700;
+  font-family: 'Space Mono', monospace;
+}
+
+.rank-1 { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
+.rank-2 { background: linear-gradient(135deg, #C0C0C0, #808080); color: #000; }
+.rank-3 { background: linear-gradient(135deg, #CD7F32, #8B4513); color: #fff; }
+.rank-other { background: rgba(139, 90, 43, 0.2); color: #b89968; }
+
+.modal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.modal-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Space Mono', monospace;
+  transition: all 0.2s ease;
+}
+
+.modal-btn-primary {
+  background: linear-gradient(135deg, #8b5a2b, #a67c52);
+  color: #fff;
+  border: 1px solid rgba(212, 165, 116, 0.3);
+}
+
+.modal-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+.modal-btn-secondary {
+  background: rgba(139, 90, 43, 0.2);
+  color: #d4a574;
+  border: 1px solid rgba(139, 90, 43, 0.3);
+}
+
+.modal-btn-secondary:hover {
+  background: rgba(139, 90, 43, 0.3);
+}
+
+.your-rank {
+  background: rgba(123, 200, 118, 0.2) !important;
+  border-left: 3px solid #7bc876;
+}
+</style>
+</head>
+
+<body>
+<div id="game-container">
+
+  <div id="header">
+    <h2>🏠 DOUPĚ</h2>
+    <h3>...by Ondrex's Ember🔥</h3>
+    <div id="season-info">
+      <span class="big">Den <span id="day">1</span></span>
+      <span class="small"><span id="season">Jaro</span></span>
+      <!-- 🔥 FIRE INDICATOR -->
+      <span class="fire-indicator inactive" id="fire-indicator">
+        <span class="fire-icon">🔥</span>
+        <span class="fire-status">Bez ohně</span>
+      </span>
+      <!-- 💰 GOLD DISPLAY -->
+      <span class="gold-display" id="gold-display">
+        <span class="gold-icon">💰</span>
+        <span class="gold-amount" id="gold-amount">0</span>
+      </span>
+    </div>
+  </div>
+
+  <div id="status-bars">
+    <div class="bar">
+      <div class="bar-label">🍖 Zásoby jídla</div>
+      <div class="fill-container">
+        <div class="fill hunger" id="hunger-fill" style="width: 100%;">50 (10d)</div>
+      </div>
+    </div>
+    <div class="bar">
+      <div class="bar-label">💧 Zásoby vody</div>
+      <div class="fill-container">
+        <div class="fill water" id="water-fill" style="width: 100%;">50 (16d)</div>
+      </div>
+    </div>
+    <div class="bar">
+      <div class="bar-label"><span id="temp-emoji">🌡️</span> Teplota doupěte</div>
+      <div class="fill-container">
+        <div class="fill temperature" id="temp-fill" style="width: 50%;">15°C</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="log"></div>
+
+  <div class="two-column-layout">
+    <div class="section">
+      <div class="section-title">
+        <span class="icon">📦</span>
+        <span>Inventář</span>
+      </div>
+      <div class="section-content" id="inventory"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span class="icon">🔨</span>
+        <span>Crafting recepty</span>
+      </div>
+      <div class="section-content" id="recipes"></div>
+    </div>
+  </div>
+
+  <div class="section" id="entities-section" style="display: none;">
+    <div class="section-title">
+      <span class="icon">👥</span>
+      <span>Obyvatelé doupěte</span>
+    </div>
+    <div class="section-content" id="entities"></div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" onclick="game.nextDay()">⏰ Další den</button>
+    <button class="primary" onclick="game.showLeaderboard()">🏆 Žebříček</button>
+    <button class="danger" onclick="game.reset()">🔄 Nový začátek</button>
+  </div>
+
+</div>
+
+<script>
+const game = {
+
+  // 🔧 Modal Management Helpers
+  openModal() {
+    // Lock body scroll when modal opens
+    document.body.classList.add('modal-open');
+    // Store scroll position
+    this._scrollY = window.scrollY;
+    document.body.style.top = `-${this._scrollY}px`;
+  },
+
+  closeModal(modalId) {
+    // Remove modal
+    const modal = document.getElementById(modalId);
+    if (modal) modal.remove();
     
-    // Payload podle GA4 Measurement Protocol specifikace
-    const payload = {
-      client_id: clientId,
-      events: [{
-        name: eventName,
-        params: {
-          ...eventParams,
-          // Automatické pridani engagement_time_msec (povinne pro lepsi metriky)
-          engagement_time_msec: eventParams.engagement_time_msec || '100'
+    // Unlock body scroll
+    document.body.classList.remove('modal-open');
+    document.body.style.top = '';
+    
+    // Restore scroll position
+    if (this._scrollY !== undefined) {
+      window.scrollTo(0, this._scrollY);
+      this._scrollY = undefined;
+    }
+  },
+
+  // 🌐 HYBRID BACKEND ADAPTER
+  // Automatically detects environment and uses appropriate backend method
+  
+  // ⚠️ IMPORTANT: Replace with your actual Apps Script Web App URL
+  BACKEND_API_URL: 'https://script.google.com/macros/s/AKfycbydADOEQx2J74UKTd5gEWxfarPywQcQk-WQJN9R5hRTdf6t0c9ZLVvHRv7Ia-P2cNoW/exec',
+  
+  get isAppsScript() {
+    // Check if we're running in Apps Script environment
+    return typeof google !== 'undefined' && 
+           google.script && 
+           google.script.run;
+  },
+
+  async backend(functionName, data = null) {
+    // Apps Script environment - use google.script.run (direct)
+    if (this.isAppsScript) {
+      return new Promise((resolve, reject) => {
+        try {
+          const runner = google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject);
+          
+          // Call the function with or without data
+          if (data !== null) {
+            runner[functionName](data);
+          } else {
+            runner[functionName]();
+          }
+        } catch(error) {
+          reject(error);
         }
-      }]
-    };
-    
-    // Odeslat do GA4
-    const options = {
-      method: 'post',
-      contentType: 'application/json',
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-    
-    const response = UrlFetchApp.fetch(url, options);
-    const responseCode = response.getResponseCode();
-    
-    // GA4 MP vraci 204 No Content pri uspechu
-    if (responseCode === 204) {
-      return { success: true };
-    } else {
-      Logger.log('GA4 Tracking Error: ' + responseCode + ' - ' + response.getContentText());
-      return { success: false, error: 'HTTP ' + responseCode };
+      });
     }
     
-  } catch(e) {
-    Logger.log('GA4 Tracking Exception: ' + e.toString());
-    return { success: false, error: e.toString() };
-  }
-}
-
-/**
- * Batch tracking - pošle více eventů najednou (optimalizace)
- * @param {string} clientId - Unique user ID  
- * @param {array} events - Array of {name, params} objects
- */
-function trackEventsBatch(clientId, events) {
-  try {
-    const url = `https://www.google-analytics.com/mp/collect?measurement_id=${GA4_MEASUREMENT_ID}&api_secret=${GA4_API_SECRET}`;
-    
-    // Přidej engagement_time ke všem eventům
-    const formattedEvents = events.map(event => ({
-      name: event.name,
-      params: {
-        ...event.params,
-        engagement_time_msec: event.params.engagement_time_msec || '100'
+    // GitHub Pages / External environment - call API via fetch
+    try {
+      console.log(`🌐 API call: ${functionName}`);
+      
+      const response = await fetch(this.BACKEND_API_URL, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: functionName,
+          data: data
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    }));
-    
-    const payload = {
-      client_id: clientId,
-      events: formattedEvents
-    };
-    
-    const options = {
-      method: 'post',
-      contentType: 'application/json',
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-    
-    const response = UrlFetchApp.fetch(url, options);
-    const responseCode = response.getResponseCode();
-    
-    if (responseCode === 204) {
-      return { success: true, eventsTracked: events.length };
-    } else {
-      Logger.log('GA4 Batch Tracking Error: ' + responseCode);
-      return { success: false, error: 'HTTP ' + responseCode };
-    }
-    
-  } catch(e) {
-    Logger.log('GA4 Batch Tracking Exception: ' + e.toString());
-    return { success: false, error: e.toString() };
-  }
-}
-
-function doGet() {
-  return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('Doupě 2 by Ondrexs Ember')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 🌐 API ENDPOINT - Pro volání z GitHub Pages
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Handle POST requests from external sources (GitHub Pages)
- * Enables CORS and routes to appropriate functions
- */
-function doPost(e) {return handleRequest(e);
-}
-
-function handleRequest(e) {
-  // CORS Headers - povolí přístup z libovolné domény
-  const output = ContentService.createTextOutput();
-  output.setMimeType(ContentService.MimeType.JSON);
-  
-  try {
-    const params = e.parameter;
-    const postData = e.postData ? JSON.parse(e.postData.contents) : {};
-    const action = params.action || postData.action;
-    const data = postData.data || {};
-    
-    let result = { success: false, message: 'Unknown action' };
-    
-    switch(action) {
-      case 'getLeaderboard':
-        result = getLeaderboard();
-        break;
-      case 'saveHighScore':
-        result = saveHighScore(data);
-        break;
-      case 'trackEvent':
-        result = trackEvent(data);
-        break;
-      case 'logTransaction':
-        result = logTransaction(data);
-        break;
-      default:
-        result = { success: false, message: 'Invalid action: ' + action };
-    }
-    
-    output.setContent(JSON.stringify(result));
-    
-  } catch(error) {
-    output.setContent(JSON.stringify({
-      success: false,
-      error: error.toString(),
-      message: 'Server error: ' + error.message
-    }));
-  }
-  
-  return output;
-}
-
-// Uložení stavu hry - zatím jednoduše
-function saveGameState(stateJson) {
-  try {
-    PropertiesService.getUserProperties().setProperty('gameState', stateJson);
-    return { success: true, message: 'Tvůj svět byl uložen...' };
-  } catch(e) {
-    return { success: false, message: 'Něco se pokazilo při ukládání' };
-  }
-}
-
-// Načtení stavu
-function loadGameState() {
-  const saved = PropertiesService.getUserProperties().getProperty('gameState');
-  if (saved) {
-    return { success: true, data: saved };
-  }
-  return { success: false, message: 'Začínáš nový příběh...' };
-}
-
-// Reset hry
-function resetGame() {
-  PropertiesService.getUserProperties().deleteProperty('gameState');
-  return { success: true, message: 'Svět byl obnoven...' };
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 🏆 LEADERBOARD SYSTÉM
-// ═══════════════════════════════════════════════════════════════
-
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/118qrQ_vu1pqYuTefpoIJUKMcr7x7tE5RysCHlghGD8Y/edit';
-
-// Uložení high score do Google Sheets
-function saveHighScore(data) {
-  try {
-    const sheet = SpreadsheetApp.openByUrl(SHEET_URL).getSheetByName('Leaderboard');
-    
-    // Zkontroluj jestli už existuje záznam pro tohoto hráče
-    const allData = sheet.getDataRange().getValues();
-    let playerRow = -1;
-    
-    for (let i = 1; i < allData.length; i++) {
-      if (allData[i][0] === data.playerId) {
-        playerRow = i + 1; // +1 protože řádky jsou 1-indexed
-        break;
+      
+      const result = await response.json();
+      console.log(`✅ API response:`, result);
+      return result;
+      
+    } catch(error) {
+      console.error(`❌ API call failed:`, error);
+      
+      // Return mock success for non-critical functions
+      if (functionName === 'trackEvent') {
+        return { success: true, message: 'Tracking skipped (API unavailable)' };
       }
-    }
-    
-    const rowData = [
-      data.playerId,
-      data.nickname || 'Anonymous',
-      data.days,
-      data.season,
-      data.population,
-      new Date(),
-      data.temperature || 0,
-      data.foodLeft || 0,
-      data.waterLeft || 0
-    ];
-    
-    if (playerRow > 0) {
-      // Update existující záznam (jen pokud je nový run lepší)
-      const currentBest = allData[playerRow - 1][2]; // Best Days je sloupec C (index 2)
-      if (data.days > currentBest) {
-        sheet.getRange(playerRow, 1, 1, 9).setValues([rowData]);
-        return { success: true, message: 'Nový osobní rekord!', isNewRecord: true };
-      } else {
-        return { success: true, message: 'Neuloženo - nemáš lepší skóre', isNewRecord: false };
+      
+      if (functionName === 'logTransaction') {
+        return { success: true, message: 'Transaction logging skipped (API unavailable)' };
       }
-    } else {
-      // Nový hráč - přidej nový řádek
-      sheet.appendRow(rowData);
-      return { success: true, message: 'První záznam uložen!', isNewRecord: true };
+      
+      // For critical functions, return failure
+      return { 
+        success: false, 
+        message: `API call failed: ${error.message}`,
+        error: error.toString()
+      };
     }
-    
-  } catch(e) {
-    Logger.log('Error saving high score: ' + e.toString());
-    return { success: false, message: 'Chyba při ukládání: ' + e.toString() };
-  }
-}
+  },
 
-// Test funkce - spusť tuhle místo saveHighScore
-function testSaveHighScore() {
-  const testData = {
-    playerId: 'test_player_123',
-    nickname: 'TestHero',
-    days: 2,
-    season: 'Jaro',
-    population: 5,
+  state: {
+    day: 1,
+    season: 0,
+    dead: false,
+    inventory: {},
+    entities: [],
+    unlockedRecipes: [],
+    eventChance: 0.5,
     temperature: 15,
-    foodLeft: 100,
-    waterLeft: 100
-  };
-  
-  const result = saveHighScore(testData);
-  Logger.log(result);
-  
-  return result;
-}
+    shelterLevel: 1,
+    heating: 0,
+    guaranteedStones: 0,
+    playerId: null,
+    playerNickname: null,
+    bestRun: 0,
+    // 🔥 FIRE SYSTEM
+    fireActive: false,
+    fireFuel: 0,
+    // 💰 ECONOMY SYSTEM
+    gold: 0
+  },
 
-// Načtení TOP 10 z leaderboardu
-function getLeaderboard() {
-  try {
-    const sheet = SpreadsheetApp.openByUrl(SHEET_URL).getSheetByName('Leaderboard');
-    const data = sheet.getDataRange().getValues();
+  seasons: [
+    { 
+      name: 'Jaro', 
+      hungerDrain: 4, 
+      waterDrain: 3,
+      baseTemp: 15,
+      tempVariance: 5,
+      icon: '🌱',
+      desc: 'Čas růstu a sběru. Víc materiálů, méně jídla.'
+    },
+    { 
+      name: 'Léto', 
+      hungerDrain: 3, 
+      waterDrain: 6,
+      baseTemp: 26,
+      tempVariance: 4,
+      icon: '☀️',
+      desc: 'Horko a sucho. Voda je vzácná!'
+    },
+    { 
+      name: 'Podzim', 
+      hungerDrain: 6, 
+      waterDrain: 4,
+      baseTemp: 10,
+      tempVariance: 6,
+      icon: '🍂',
+      desc: 'Čas sklizně. Připrav se na zimu.'
+    },
+    { 
+      name: 'Zima', 
+      hungerDrain: 10, 
+      waterDrain: 3,
+      baseTemp: -5,
+      tempVariance: 8,
+      icon: '❄️',
+      desc: 'Drsná zima. Přežiješ jen s dostatkem zásob.'
+    }
+  ],
+
+  items: {
+    // 💰 ECONOMY: sellPrice = co dostanu za prodej, buyPrice = co musím zaplatit
+    wood: { name: 'Dřevo', icon: '🪵', desc: 'Základní stavební materiál', sellPrice: 2 },
+    stone: { name: 'Kámen', icon: '🪨', desc: 'Tvrdý materiál pro nástroje', sellPrice: 3 },
+    fiber: { name: 'Vlákna', icon: '🌾', desc: 'Pro výrobu provazů', sellPrice: 1 },
+    mushroom: { name: 'Houba', icon: '🍄', desc: 'Jedlá nebo nejedlá', sellPrice: 4 },
+    bark: { name: 'Kůra', icon: '🪵', desc: 'Suchá kůra na zapálení', sellPrice: 2 },
+    stick: { name: 'Hůl', icon: '🦯', desc: 'Užitečná tyč', sellPrice: 4 },
+    rope: { name: 'Provaz', icon: '🪢', desc: 'Pevné vlákno', sellPrice: 6 },
+    trap: { name: 'Past', icon: '🪤', desc: 'Chytá zvěř', sellPrice: 15 },
+    basket: { name: 'Koš', icon: '🧺', desc: 'Pro sběr bobulí', sellPrice: 12 },
+    knife: { name: 'Nůž', icon: '🔪', desc: 'Základní nástroj pro řezání', sellPrice: 30 },
+    axe: { name: 'Sekyrka', icon: '🪓', desc: 'Pro kácení dřeva', sellPrice: 45 },
+    bowl: { name: 'Miska', icon: '🥣', desc: 'Nádoba na vodu', sellPrice: 8 },
+    leather: { name: 'Kůže', icon: '🦺', desc: 'Zpracovaná kůže', sellPrice: 20 },
+    plank: { name: 'Prkno', icon: '🪚', desc: 'Opracované dřevo', sellPrice: 5 },
+    bow: { name: 'Luk', icon: '🏹', desc: 'Pro lov', sellPrice: 60 },
+    seeds: { name: 'Semena', icon: '🌱', desc: 'Pro pěstování jídla', sellPrice: 3 },
+    food: { name: 'Jídlo', icon: '🍖', desc: 'Udržuje život', buyPrice: 10 },
+    water_supply: { name: 'Voda', icon: '💧', desc: 'Udržuje život', buyPrice: 7 },
+    storage: { name: 'Sklad', icon: '📦', desc: 'Uchovává zásoby přes zimu', sellPrice: 50 },
+    insulation: { name: 'Izolace', icon: '🧱', desc: 'Zlepšuje tepelnou izolaci', sellPrice: 80 },
+    fireplace: { name: 'Krb', icon: '🔥', desc: 'Vytápí doupě', sellPrice: 100 },
+    dried_meat: { name: 'Sušené maso', icon: '🥩', desc: 'Vydrží přes zimu', sellPrice: 25 }
+  },
+
+  recipes: [
+    // Tier 1 - Základy
+    {
+      id: 'stick',
+      name: 'Hůl',
+      icon: '🦯',
+      materials: { wood: 1 },
+      result: { stick: 2 },
+      tier: 1
+    },
+    {
+      id: 'rope',
+      name: 'Provaz',
+      icon: '🪢',
+      materials: { fiber: 3 },
+      result: { rope: 1 },
+      tier: 1
+    },
+    {
+      id: 'bowl',
+      name: 'Miska',
+      icon: '🥣',
+      materials: { wood: 2 },
+      result: { bowl: 1 },
+      tier: 1
+    },
+    {
+      id: 'trap',
+      name: 'Past na zvěř',
+      icon: '🪤',
+      materials: { rope: 2, stick: 3 },
+      result: { trap: 1 },
+      tier: 1,
+      desc: 'Chytá malou zvěř přes noc'
+    },
+    {
+      id: 'basket',
+      name: 'Sběrací koš',
+      icon: '🧺',
+      materials: { fiber: 5, stick: 2 },
+      result: { basket: 1 },
+      tier: 1,
+      desc: 'Pro sběr bobulí a hub'
+    },
     
-    if (data.length <= 1) {
-      return { success: true, data: [] }; // Prázdný leaderboard
+    // Tier 2 - Základní nástroje
+    {
+      id: 'knife',
+      name: 'Kamenný nůž',
+      icon: '🔪',
+      materials: { stone: 2, stick: 1 },
+      result: { knife: 1 },
+      tier: 2,
+      unlock: 'first_entity'
+    },
+    {
+      id: 'axe',
+      name: 'Sekyrka',
+      icon: '🪓',
+      materials: { stone: 3, stick: 2, rope: 1 },
+      result: { axe: 1 },
+      tier: 2,
+      unlock: 'first_entity'
+    },
+    // 🔥 FIRE SYSTEM - Bow Drill (Tier 2)
+    {
+      id: 'start_fire_drill',
+      name: 'Založit oheň (Bow Drill)',
+      icon: '🔥',
+      materials: { stick: 2, fiber: 3, bark: 1 },
+      requires: { bow: 1 },
+      tier: 2,
+      desc: '80% šance na úspěch',
+      isFireStarter: true,
+      fireChance: 0.8,
+      fireMethod: 'bow_drill'
+    },
+
+    // Tier 3 - Pokročilé
+    {
+      id: 'plank',
+      name: 'Prkno',
+      icon: '🪚',
+      materials: { wood: 2 },
+      result: { plank: 1 },
+      requires: { axe: 1 },
+      tier: 3
+    },
+    {
+      id: 'leather',
+      name: 'Kůže',
+      icon: '🦺',
+      materials: { food: 2 },
+      result: { leather: 1 },
+      requires: { knife: 1 },
+      tier: 3
+    },
+    {
+      id: 'bow',
+      name: 'Luk',
+      icon: '🏹',
+      materials: { stick: 3, rope: 2 },
+      result: { bow: 1 },
+      tier: 3,
+      unlock: 'hunter_entity'
+    },
+    // 🔥 FIRE SYSTEM - Křesadlo (Tier 3)
+    {
+      id: 'start_fire_flint',
+      name: 'Založit oheň (Křesadlo)',
+      icon: '⚡',
+      materials: { stone: 3 },
+      requires: { knife: 1 },
+      tier: 3,
+      desc: '100% úspěch',
+      isFireStarter: true,
+      fireChance: 1.0,
+      fireMethod: 'flint_steel'
+    },
+    
+    // 🔥 FIRE-BASED CRAFTING
+    {
+      id: 'dried_meat',
+      name: 'Sušené maso',
+      icon: '🥩',
+      materials: { food: 5 },
+      requiresFire: true,
+      result: { dried_meat: 3 },
+      tier: 3,
+      desc: 'Vydrží přes zimu, neskazí se'
+    },
+    // Tier 4 - Infrastruktura
+    {
+      id: 'storage',
+      name: 'Sklad na zimu',
+      icon: '📦',
+      materials: { plank: 5, rope: 3 },
+      result: { storage: 1 },
+      tier: 4
+    },
+    {
+      id: 'fireplace',
+      name: 'Krb',
+      icon: '🔥',
+      materials: { stone: 8, plank: 3 },
+      result: { fireplace: 1 },
+      tier: 4,
+      desc: 'Umožňuje topit dřevem'
+    },
+    {
+      id: 'insulation',
+      name: 'Tepelná izolace',
+      icon: '🧱',
+      materials: { fiber: 10, plank: 5, leather: 2 },
+      result: { insulation: 1 },
+      tier: 4,
+      desc: 'Zlepšuje izolaci doupěte'
+    }
+  ],
+
+  // Události co můžou nastat každý den
+  randomEvents: [
+    {
+      id: 'wood_fall',
+      chance: 0.4,
+      items: { wood: [2, 4] },
+      message: '🪵 Několik větví spadlo ze stropu'
+    },
+    {
+      id: 'stone_fall',
+      chance: 0.3,
+      items: { stone: [1, 3] },
+      message: '🪨 Kameny se uvolnily ze stěny'
+    },
+    {
+      id: 'fiber_find',
+      chance: 0.35,
+      items: { fiber: [3, 5] },
+      message: '🌾 Našel jsi svazky vláken'
+    },
+    {
+      id: 'bark_find', // 🔥 NEW EVENT
+      chance: 0.35,
+      items: { bark: [2, 6] },
+      message: '🪵 Kůra spadla ze stromu'
+    },
+    {
+      id: 'water_drip',
+      chance: 0.8,
+      items: { water_supply: [6, 12] },
+      message: '💧 Voda kape ze stropu do misek'
+    },
+    {
+      id: 'mushroom_find',
+      chance: 0.25,
+      items: { food: [2, 4] },
+      message: '🍄 Našel jsi jedlé houby'
+    },
+    {
+      id: 'seed_find',
+      chance: 0.3,
+      season: [0], // pouze na jaře
+      items: { seeds: [2, 4] },
+      message: '🌱 Vítr přinesl semena'
+    },
+    {
+      id: 'nothing',
+      chance: 0.15,
+      message: '...ticho a prázdnota...'
+    }
+  ],
+
+  entityTypes: [
+    {
+      id: 'gatherer',
+      name: 'Sběrač',
+      icon: '👤',
+      actions: [
+        {
+          name: 'Sbírat materiály',
+          duration: 1,
+          requires: { knife: 1 },
+          result: () => {
+            const items = ['wood', 'stone', 'fiber'];
+            const item = items[Math.floor(Math.random() * items.length)];
+            return { [item]: Math.floor(Math.random() * 3) + 8 };
+          }
+        },
+        {
+          name: 'Sbírat bobule',
+          duration: 1,
+          requires: { basket: 1 },
+          result: () => ({ 
+            food: Math.floor(Math.random() * 3) + 3,
+            water_supply: Math.random() > 0.5 ? Math.floor(Math.random() * 2) + 6 : 0
+          })
+        },
+        {
+          name: 'Nastražit past',
+          duration: 2,
+          requires: { trap: 1 },
+          result: () => ({ 
+            food: Math.floor(Math.random() * 5) + 4
+          })
+        },
+        {
+          name: 'Sbírat vodu',
+          duration: 1,
+          requires: { bowl: 1 },
+          result: () => ({ water_supply: Math.floor(Math.random() * 5) + 10 })
+        },
+        {
+          name: 'Topit v krbu',
+          duration: 1,
+          requires: { fireplace: 1 },
+          isHeating: true,
+          result: () => ({ heating: 1 })
+        },
+        // 🔥 NEW ACTION - Přiložit do ohně
+        {
+          name: 'Přiložit do ohně',
+          duration: 1,
+          requiresFire: true,
+          isFuelAction: true,
+          result: () => ({ fireFuel: 2 })
+        }
+      ]
+    },
+    {
+      id: 'hunter',
+      name: 'Lovec',
+      icon: '🏹',
+      unlockRequires: { bow: 1 },
+      actions: [
+        {
+          name: 'Lovit',
+          duration: 2,
+          requires: { bow: 1 },
+          result: () => ({ 
+            food: Math.floor(Math.random() * 6) + 5,
+            leather: Math.random() > 0.5 ? 1 : 0
+          })
+        }
+      ]
+    }
+  ],
+
+  // Google Analytics 4 - Server-Side Tracking
+  track(eventName, params = {}) {
+    // Server-side tracking přes Google Apps Script backend
+    // Measurement Protocol API zajišťuje spolehlivé měření bez cookies/iframe omezení
+    try {
+      const clientId = this.state.playerId; // Použij player ID jako client_id
+      
+      if (clientId) {
+        // Use hybrid backend adapter
+        this.backend('trackEvent', { clientId, eventName, params })
+          .then(() => {
+            // Success - tiché logování (neruší hráče)
+            console.log('✓ GA4 tracked:', eventName);
+          })
+          .catch((error) => {
+            // Failure - tiché logování (tracking nesmí crashnout hru)
+            console.warn('GA4 tracking failed:', error);
+          });
+      }
+    } catch(e) {
+      // Catch any errors - tracking nesmí nikdy crashnout hru
+      console.warn('GA4 tracking error:', e);
+    }
+  },
+
+  calculateTemperature() {
+    const season = this.seasons[this.state.season];
+    
+    // Base temperature ze sezóny s náhodnou variance
+    const variance = (Math.random() - 0.5) * 2 * season.tempVariance;
+    let targetTemp = season.baseTemp + variance;
+    
+    // Heating bonus (každé topení = +5°C, max 3 dny)
+    const heatingBonus = Math.min(this.state.heating, 3) * 5;
+    
+    // Shelter bonus (lepší izolace = menší rozdíl od ideální teploty)
+    const insulations = this.state.inventory.insulation || 0;
+    const shelterLevel = 1 + (insulations * 0.5);
+    
+    // Pokud je venku moc chladno/teplo, shelter pomáhá
+    const idealTemp = 15;
+    const diff = targetTemp - idealTemp;
+    const shelteredDiff = diff / shelterLevel;
+    
+    targetTemp = idealTemp + shelteredDiff + heatingBonus;
+    
+    this.state.temperature = Math.round(targetTemp * 10) / 10;
+    this.state.shelterLevel = shelterLevel;
+  },
+
+  getTemperatureEmoji(temp) {
+    if (temp < -5) return '🥶';
+    if (temp < 5) return '❄️';
+    if (temp < 12) return '🌡️';
+    if (temp < 20) return '🌤️';
+    if (temp < 28) return '☀️';
+    return '🔥';
+  },
+
+  getTemperatureEffects() {
+    const temp = this.state.temperature;
+    let hungerMultiplier = 1;
+    let waterMultiplier = 1;
+    let efficiency = 1;
+    
+    // Příliš chladno
+    if (temp < 5) {
+      hungerMultiplier = 1.5;
+      efficiency = 0.7;
+    } else if (temp < 10) {
+      hungerMultiplier = 1.2;
+      efficiency = 0.85;
     }
     
-    // Seřaď podle dní (sloupec C, index 2) sestupně
-    const sorted = data.slice(1).sort((a, b) => b[2] - a[2]);
-    
-    // Vezmi TOP 10
-    const top10 = sorted.slice(0, 10).map((row, index) => ({
-      rank: index + 1,
-      playerId: row[0],
-      nickname: row[1],
-      days: row[2],
-      season: row[3],
-      population: row[4]
-    }));
-    
-    return { success: true, data: top10 };
-    
-  } catch(e) {
-    Logger.log('Error loading leaderboard: ' + e.toString());
-    return { success: false, message: 'Chyba při načítání žebříčku: ' + e.toString() };
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 🧪 TEST FUNKCE PRO GA4
-// ═══════════════════════════════════════════════════════════════
-
-function testGA4Tracking() {
-  const testClientId = 'test_user_' + new Date().getTime();
-  
-  // Test 1: Single event
-  Logger.log('Testing single event...');
-  const result1 = trackEvent(testClientId, 'test_event', {
-    test_param: 'test_value',
-    days_survived: 10
-  });
-  Logger.log('Single event result: ' + JSON.stringify(result1));
-  
-  // Test 2: Batch events
-  Logger.log('Testing batch events...');
-  const result2 = trackEventsBatch(testClientId, [
-    { name: 'game_start', params: { starting_food: 60 } },
-    { name: 'craft_item', params: { item_name: 'Test Item', day: 1 } }
-  ]);
-  Logger.log('Batch events result: ' + JSON.stringify(result2));
-  
-  return {
-    singleEvent: result1,
-    batchEvents: result2
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 💰 ECONOMY SYSTEM - Backend Functions
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Log economy transaction to Sheets
- * @param {object} transaction - Transaction data
- */
-function logTransaction(transaction) {
-  try {
-    const sheet = SpreadsheetApp.openByUrl(SHEET_URL).getSheetByName('Transactions');
-    
-    // Pokud tab neexistuje, vytvoř ho
-    if (!sheet) {
-      const ss = SpreadsheetApp.openByUrl(SHEET_URL);
-      const newSheet = ss.insertSheet('Transactions');
-      newSheet.appendRow([
-        'Timestamp', 'PlayerId', 'Type', 'ItemId', 'ItemName', 
-        'Quantity', 'GoldAmount', 'NewBalance', 'Day'
-      ]);
-      return; // První volání vytvoří header
+    // Příliš teplo
+    if (temp > 28) {
+      waterMultiplier = 1.5;
+      efficiency = 0.7;
+    } else if (temp > 23) {
+      waterMultiplier = 1.2;
+      efficiency = 0.85;
     }
     
-    sheet.appendRow([
-      new Date(),
-      transaction.playerId,
-      transaction.type, // 'sell' or 'buy'
-      transaction.itemId,
-      transaction.itemName,
-      transaction.quantity,
-      transaction.goldAmount,
-      transaction.newBalance,
-      transaction.day
-    ]);
+    // Ideální teplota (10-20°C)
+    if (temp >= 10 && temp <= 20) {
+      efficiency = 1.1; // bonus!
+    }
     
-    return { success: true };
+    return { hungerMultiplier, waterMultiplier, efficiency };
+  },
+  // 🔥 UPDATE FIRE INDICATOR UI
+  updateFireIndicator() {
+    const indicator = document.getElementById('fire-indicator');
+    const statusText = indicator.querySelector('.fire-status');
     
-  } catch(e) {
-    Logger.log('Error logging transaction: ' + e.toString());
-    return { success: false, error: e.toString() };
-  }
-}
-
-/**
- * Get economy config (prices)
- * V FASE 1 to jen returne success, v budoucnu můžeme číst z Sheets
- */
-function getEconomyConfig() {
-  try {
-    // V FASE 1 jsou ceny hardcoded v JS
-    // V FASE 2 můžeme přidat Google Sheet s dynamickými cenami
-    return {
-      success: true,
-      message: 'Economy config loaded (hardcoded prices)'
+    if (this.state.fireActive && this.state.fireFuel > 0) {
+      indicator.classList.remove('inactive');
+      indicator.classList.add('active');
+      statusText.textContent = `Hoří (${this.state.fireFuel}d)`;
+    } else {
+      indicator.classList.remove('active');
+      indicator.classList.add('inactive');
+      statusText.textContent = 'Bez ohně';
+    }
+  },
+  init() {
+    // Player ID systém
+    let playerId = localStorage.getItem('doupe_player_id');
+    if (!playerId) {
+      playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('doupe_player_id', playerId);
+    }
+    this.state.playerId = playerId;
+    
+    // Načti best run a nickname
+    this.state.bestRun = parseInt(localStorage.getItem('doupe_best_run') || '0');
+    this.state.playerNickname = localStorage.getItem('doupe_nickname') || null;
+    
+    this.state.inventory = { 
+      wood: 5,
+      fiber: 8,
+      food: 60,
+      water_supply: 60
     };
-  } catch(e) {
-    Logger.log('Error loading economy config: ' + e.toString());
-    return { success: false, error: e.toString() };
-  }
-}
+    this.state.temperature = 15;
+    this.state.shelterLevel = 1;
+    this.state.heating = 0;
+    this.state.guaranteedStones = 0;
+    this.state.fireActive = false; // 🔥
+    this.state.fireFuel = 0; // 🔥
+    this.state.unlockedRecipes = ['stick', 'rope', 'bowl', 'trap', 'basket'];
+    
+    // 🌐 Environment Detection
+    const environment = this.isAppsScript ? 'Apps Script (Full Features)' : 'Standalone (Local Save)';
+    console.log(`🎮 Doupě 2 - Running in: ${environment}`);
+    
+    // GA4 Tracking - Page View
+    this.track('page_view', {
+      page_title: 'Doupě - Survival Crafting',
+      page_location: window.location.href,
+      engagement_time_msec: '100',
+      environment: environment
+    });
+    
+    // GA4 Tracking - Game Start
+    this.track('game_start', {
+      starting_food: 60,
+      starting_water: 60,
+      starting_temperature: 15,
+      is_returning_player: this.state.bestRun > 0,
+      environment: environment
+    });
+    
+    // Atmosférický úvod
+    this.log('🌲 Probouzíš se v tichém doupěti, kdesi hluboko v temných lesích...', 'info');
+    this.log('Vzduch je těžký. Kolonie na pokraji zániku. Hlad, žízeň, mráz - tvoji věční nepřátelé.', 'warning');
+    this.log('Léta sucha vysušila prameny. Zimy jsou kruté, jídlo vzácné. Přežití není zaručeno.', 'warning');
+    this.log('', 'info');
+    this.log('💡 JAK ZAČÍT: Vytvořte si nástroje (hůl, provaz, misku). Postavte past na zvěř.', 'success');
+    this.log('💡 PRVNÍ KROKY: Craftujte nůž → přijde obyvatel → přiřaďte mu práci.', 'success');
+    this.log('💡 KLÍČ K PŘEŽITÍ: Sledujte zásoby! Zima přichází každých 15 dní a je nemilosrdná.', 'danger');
+    this.log('💡 TEPLOTA: V mrazu spotřebujete víc jídla. Postavte krb, zatopte, nebo budete mrznou.', 'danger');
+    this.log('🔥 OHEŇ: Luk → Bow Drill (80%) nebo Křesadlo (100%). Potřebný pro sušení masa!', 'success');
+    this.log('💰 EKONOMIKA: Prodávej suroviny 💰 za zlato → Kup jídlo/vodu 🏷️. Risk vs. reward!', 'success');
+    
+    // Environment indicator
+    if (!this.isAppsScript) {
+      this.log('⚠️ Standalone mód: Žebříček pouze lokální. Pro plné funkce použij Apps Script.', 'warning');
+    }
+    
+    this.log('', 'info');
+    
+    this.render();
+  },
 
-/**
- * Test funkce pro economy
- */
-function testEconomy() {
-  const testTransaction = {
-    playerId: 'test_player_123',
-    type: 'sell',
-    itemId: 'wood',
-    itemName: 'Dřevo',
-    quantity: 5,
-    goldAmount: 10,
-    newBalance: 25,
-    day: 3
-  };
-  
-  const result = logTransaction(testTransaction);
-  Logger.log('Transaction log result: ' + JSON.stringify(result));
-  
-  return result;
-}
+  log(text, type = 'info') {
+    const div = document.createElement('div');
+    div.className = `log-entry log-${type}`;
+    div.textContent = text;
+    const logEl = document.getElementById('log');
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  },
+
+  showNotification(text) {
+    const notif = document.createElement('div');
+    notif.className = 'event-notification';
+    notif.textContent = text;
+    document.body.appendChild(notif);
+    
+    setTimeout(() => {
+      notif.style.animation = 'slideIn 0.5s ease-out reverse';
+      setTimeout(() => notif.remove(), 500);
+    }, 3000);
+  },
+
+  // 💰 ECONOMY: Sell Item
+  sellItem(itemId, quantity = 1) {
+    const item = this.items[itemId];
+    if (!item) return;
+    
+    const have = this.state.inventory[itemId] || 0;
+    if (have < quantity) {
+      this.log('❌ Nemáš dost na prodej', 'warning');
+      return;
+    }
+    
+    if (!item.sellPrice) {
+      this.log('❌ Toto nelze prodat', 'warning');
+      return;
+    }
+    
+    const goldEarned = item.sellPrice * quantity;
+    
+    // Update state
+    this.removeItem(itemId, quantity);
+    this.state.gold += goldEarned;
+    
+    this.log(`💰 Prodal jsi ${item.icon} ${item.name} ×${quantity} za ${goldEarned}g`, 'success');
+    this.showNotification(`💰 +${goldEarned}g`);
+    
+    // GA4 Tracking
+    this.track('item_sold', {
+      item_id: itemId,
+      item_name: item.name,
+      quantity: quantity,
+      gold_earned: goldEarned,
+      new_gold_balance: this.state.gold,
+      day: this.state.day
+    });
+    
+    // Backend transaction logging (fire & forget)
+    this.backend('logTransaction', {
+      playerId: this.state.playerId,
+      type: 'sell',
+      itemId: itemId,
+      itemName: item.name,
+      quantity: quantity,
+      goldAmount: goldEarned,
+      newBalance: this.state.gold,
+      day: this.state.day
+    }).catch((error) => {
+      console.warn('Transaction log failed:', error);
+    });
+    
+    this.render();
+  },
+
+  // 💰 ECONOMY: Buy Item
+  buyItem(itemId, quantity = 1) {
+    const item = this.items[itemId];
+    if (!item) return;
+    
+    if (!item.buyPrice) {
+      this.log('❌ Toto nelze koupit', 'warning');
+      return;
+    }
+    
+    const goldNeeded = item.buyPrice * quantity;
+    
+    if (this.state.gold < goldNeeded) {
+      this.log(`❌ Nemáš dost zlata (potřeba ${goldNeeded}g)`, 'warning');
+      return;
+    }
+    
+    // Update state
+    this.state.gold -= goldNeeded;
+    this.addItem(itemId, quantity);
+    
+    this.log(`🏷️ Koupil jsi ${item.icon} ${item.name} ×${quantity} za ${goldNeeded}g`, 'success');
+    this.showNotification(`🏷️ -${goldNeeded}g`);
+    
+    // GA4 Tracking
+    this.track('item_bought', {
+      item_id: itemId,
+      item_name: item.name,
+      quantity: quantity,
+      gold_spent: goldNeeded,
+      new_gold_balance: this.state.gold,
+      day: this.state.day
+    });
+    
+    // Backend transaction logging (fire & forget)
+    this.backend('logTransaction', {
+      playerId: this.state.playerId,
+      type: 'buy',
+      itemId: itemId,
+      itemName: item.name,
+      quantity: quantity,
+      goldAmount: goldNeeded,
+      newBalance: this.state.gold,
+      day: this.state.day
+    }).catch((error) => {
+      console.warn('Transaction log failed:', error);
+    });
+    
+    this.render();
+  },
+
+  hasMaterials(materials) {
+    return Object.entries(materials).every(
+      ([id, count]) => (this.state.inventory[id] || 0) >= count
+    );
+  },
+
+  hasTools(tools) {
+    if (!tools) return true;
+    return Object.entries(tools).every(
+      ([id, count]) => (this.state.inventory[id] || 0) >= count
+    );
+  },
+
+  addItem(id, count) {
+    this.state.inventory[id] = (this.state.inventory[id] || 0) + count;
+  },
+
+  removeItem(id, count) {
+    this.state.inventory[id] = (this.state.inventory[id] || 0) - count;
+    if (this.state.inventory[id] <= 0) delete this.state.inventory[id];
+  },
+
+  craft(recipeId) {
+    const recipe = this.recipes.find(r => r.id === recipeId);
+    if (!recipe) return;
+
+    if (!this.hasMaterials(recipe.materials)) {
+      this.log('❌ Nemáš dost materiálů', 'warning');
+      return;
+    }
+
+    if (recipe.requires && !this.hasTools(recipe.requires)) {
+      this.log('❌ Potřebuješ správné nástroje', 'warning');
+      return;
+    }
+
+    // 🔥 Check fire requirement
+    if (recipe.requiresFire && !this.state.fireActive) {
+      this.log('❌ Potřebuješ hořící oheň', 'warning');
+      return;
+    }
+
+    // 🔥 FIRE STARTER RECIPES (special handling)
+    if (recipe.isFireStarter) {
+      // Odečti materiály
+      for (const [id, count] of Object.entries(recipe.materials)) {
+        this.removeItem(id, count);
+      }
+
+      // RNG roll
+      if (Math.random() < recipe.fireChance) {
+        this.state.fireActive = true;
+        this.state.fireFuel = 0; // Start with 0, need to add wood
+        this.log(`🔥 Oheň vzplanul! (${recipe.fireMethod})`, 'success');
+        this.showNotification('🔥 Oheň hoří!');
+        
+        // GA tracking
+        this.track('fire_started', {
+          method: recipe.fireMethod,
+          day: this.state.day,
+          chance: recipe.fireChance
+        });
+      } else {
+        this.log('💨 Nepodařilo se... zkus znovu', 'warning');
+        
+        // GA tracking failure
+        this.track('fire_failed', {
+          method: recipe.fireMethod,
+          day: this.state.day
+        });
+      }
+      
+      this.render();
+      return;
+    }
+
+    // NORMAL CRAFTING (not fire starter)
+    // Odečti materiály
+    for (const [id, count] of Object.entries(recipe.materials)) {
+      this.removeItem(id, count);
+    }
+
+    // Přidej výsledek
+    for (const [id, count] of Object.entries(recipe.result)) {
+      this.addItem(id, count);
+    }
+
+    this.log(`✅ Vytvořil jsi ${recipe.icon} ${recipe.name}`, 'success');
+
+    // GA Tracking - Craft Item
+    this.track('craft_item', {
+      item_name: recipe.name,
+      item_id: recipe.id,
+      item_tier: recipe.tier,
+      day: this.state.day,
+      season: this.seasons[this.state.season].name
+    });
+
+    // Unlock mechaniky
+    if (recipe.unlock === 'first_entity' && this.state.entities.length === 0) {
+      this.spawnEntity('gatherer');
+      this.log('👤 Do doupěte dorazil první obyvatel - Sběrač!', 'success');
+      this.showNotification('🎉 Nový obyvatel se připojil!');
+    }
+
+    if (recipe.unlock === 'hunter_entity') {
+      const hasHunter = this.state.entities.some(e => e.type === 'hunter');
+      if (!hasHunter) {
+        this.spawnEntity('hunter');
+        this.log('🏹 Lovec se připojil k doupěti!', 'success');
+        this.showNotification('🎉 Lovec se připojil!');
+      }
+    }
+
+    this.render();
+  },
+
+  spawnEntity(typeId) {
+    const type = this.entityTypes.find(t => t.id === typeId);
+    if (!type) return;
+
+    const entity = {
+      id: Date.now(),
+      type: typeId,
+      name: type.name,
+      icon: type.icon,
+      status: 'idle',
+      action: null,
+      daysLeft: 0
+    };
+
+    this.state.entities.push(entity);
+    
+    // GA Tracking - Entity Joined
+    this.track('entity_joined', {
+      entity_type: typeId,
+      entity_name: type.name,
+      day: this.state.day,
+      total_entities: this.state.entities.length
+    });
+  },
+
+  assignAction(entityId, actionIndex) {
+    const entity = this.state.entities.find(e => e.id === entityId);
+    if (!entity) return;
+
+    const type = this.entityTypes.find(t => t.id === entity.type);
+    const action = type.actions[actionIndex];
+
+    if (!this.hasTools(action.requires)) {
+      this.log('❌ Entita nemá potřebné nástroje', 'warning');
+      return;
+    }
+    // 🔥 Check fire requirement for fuel action
+    if (action.requiresFire && !this.state.fireActive) {
+      this.log('❌ Není založený oheň', 'warning');
+      return;
+    }
+    entity.status = 'working';
+    entity.action = action;
+    entity.daysLeft = action.duration;
+
+    this.log(`${entity.icon} ${entity.name} začal: ${action.name}`, 'info');
+    
+    // GA Tracking - Entity Action
+    this.track('entity_action', {
+      entity_type: entity.type,
+      action_name: action.name,
+      action_duration: action.duration,
+      day: this.state.day
+    });
+    
+    this.render();
+  },
+
+  processEntities() {
+    this.state.entities.forEach(entity => {
+      if (entity.status === 'working' && entity.daysLeft > 0) {
+        entity.daysLeft--;
+
+        if (entity.daysLeft === 0) {
+          // 🔥 FUEL ACTION (special handling)
+          if (entity.action.isFuelAction) {
+            const woodAvailable = this.state.inventory.wood || 0;
+            if (woodAvailable >= 3) {
+              this.removeItem('wood', 3);
+              this.state.fireFuel += 2; // 3 wood = 2 days fuel
+              this.log(`${entity.icon} ${entity.name} přiložil do ohně (+2 dny, -3 🪵)`, 'success');
+              
+              // GA Tracking - Fuel Added
+              this.track('fire_fueled', {
+                wood_used: 3,
+                fuel_added: 2,
+                total_fuel: this.state.fireFuel,
+                day: this.state.day
+              });
+            } else {
+              this.log(`${entity.icon} ${entity.name} nemá dřevo (potřeba 3)`, 'warning');
+            }
+            entity.status = 'idle';
+            entity.action = null;
+            return;
+          }
+
+          // Speciální zpracování heating akce
+          if (entity.action.isHeating) {
+            const woodAvailable = this.state.inventory.wood || 0;
+            if (woodAvailable >= 3) {
+              this.removeItem('wood', 3);
+              this.state.heating = Math.min(this.state.heating + 1, 3);
+              this.log(`${entity.icon} ${entity.name} zatopil v krbu (+5°C po 1 den)`, 'success');
+              
+              // GA Tracking - Heating
+              this.track('heating_action', {
+                success: true,
+                heating_level: this.state.heating,
+                temperature: this.state.temperature,
+                day: this.state.day
+              });
+            } else {
+              this.log(`${entity.icon} ${entity.name} nemá dřevo na topení (potřeba 3)`, 'warning');
+              
+              // GA Tracking - Heating Failed
+              this.track('heating_action', {
+                success: false,
+                wood_available: woodAvailable,
+                temperature: this.state.temperature,
+                day: this.state.day
+              });
+            }
+            entity.status = 'idle';
+            entity.action = null;
+            return;
+          }
+          
+          // Akce dokončena - normální result
+          const result = entity.action.result();
+          
+          let resultText = [];
+          for (const [itemId, count] of Object.entries(result)) {
+            if (count > 0) {
+              this.addItem(itemId, count);
+              const item = this.items[itemId];
+              resultText.push(`${item.icon} ${item.name} ×${count}`);
+            }
+          }
+
+          if (resultText.length > 0) {
+            this.log(`${entity.icon} ${entity.name} přinesl: ${resultText.join(', ')}`, 'item');
+          } else {
+            this.log(`${entity.icon} ${entity.name} se vrátil s prázdnou`, 'warning');
+          }
+
+          entity.status = 'idle';
+          entity.action = null;
+        }
+      }
+    });
+  },
+
+  triggerRandomEvent() {
+    const currentSeason = this.seasons[this.state.season];
+    
+    // Filtruj události podle sezóny
+    const availableEvents = this.randomEvents.filter(event => {
+      if (event.season && !event.season.includes(this.state.season)) {
+        return false;
+      }
+      return true;
+    });
+
+    // Náhodná šance na událost
+    if (Math.random() > this.state.eventChance) return;
+
+    // Vyber událost podle vah
+    const totalChance = availableEvents.reduce((sum, e) => sum + e.chance, 0);
+    let roll = Math.random() * totalChance;
+
+    for (const event of availableEvents) {
+      roll -= event.chance;
+      if (roll <= 0) {
+        if (event.items) {
+          for (const [itemId, range] of Object.entries(event.items)) {
+            const count = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+            this.addItem(itemId, count);
+            const item = this.items[itemId];
+            this.log(event.message + ` (+${count} ${item.icon})`, 'item');
+          }
+        } else {
+          this.log(event.message, 'info');
+        }
+        break;
+      }
+    }
+  },
+
+  nextDay() {
+    if (this.state.dead) return;
+
+    this.state.day++;
+
+    // Změna sezóny každých 15 dní
+    const newSeason = Math.floor((this.state.day - 1) / 15) % 4;
+    if (newSeason !== this.state.season) {
+      this.state.season = newSeason;
+      const season = this.seasons[this.state.season];
+      this.log(`${season.icon} Nastává ${season.name}! ${season.desc}`, 'warning');
+      this.showNotification(`${season.icon} ${season.name} začíná!`);
+      
+      // GA Tracking - Season Change
+      this.track('season_change', {
+        new_season: season.name,
+        day: this.state.day,
+        population: this.state.entities.length + 1,
+        food_reserves: this.state.inventory.food || 0,
+        water_reserves: this.state.inventory.water_supply || 0
+      });
+    }
+
+    // GA Tracking - Day Milestones
+    if (this.state.day % 10 === 0) {
+      this.track('milestone_reached', {
+        days_survived: this.state.day,
+        season: this.seasons[this.state.season].name,
+        population: this.state.entities.length + 1,
+        temperature: this.state.temperature,
+        food_supply: this.state.inventory.food || 0,
+        water_supply: this.state.inventory.water_supply || 0
+      });
+    }
+
+    const season = this.seasons[this.state.season];
+
+    this.log(`--- Den ${this.state.day} ---`, 'info');
+    // 🔥 FIRE DECAY
+    if (this.state.fireFuel > 0) {
+      this.state.fireFuel--;
+      if (this.state.fireFuel === 0) {
+        this.state.fireActive = false;
+        this.log('🌫️ Oheň vyhasl!', 'warning');
+        this.showNotification('💨 Oheň vyhasl!');
+        
+        // GA Tracking - Fire Extinguished
+        this.track('fire_extinguished', {
+          day: this.state.day,
+          reason: 'no_fuel'
+        });
+      } else {
+        this.log(`🔥 Oheň hoří (zbývá ${this.state.fireFuel} dní)`, 'info');
+      }
+    }
+    // Výpočet teploty
+    this.calculateTemperature();
+    const tempEffects = this.getTemperatureEffects();
+    const tempEmoji = this.getTemperatureEmoji(this.state.temperature);
+    
+    // Temperature warning
+    if (this.state.temperature < 5) {
+      this.log(`${tempEmoji} Je mrazivě! (${this.state.temperature}°C) Spotřeba jídla +50%`, 'danger');
+      // GA Tracking - Extreme Cold
+      this.track('extreme_temperature', {
+        type: 'freezing',
+        temperature: this.state.temperature,
+        day: this.state.day,
+        heating_active: this.state.heating > 0
+      });
+    } else if (this.state.temperature < 10) {
+      this.log(`${tempEmoji} Je chladno (${this.state.temperature}°C) Spotřeba jídla +20%`, 'warning');
+    } else if (this.state.temperature > 28) {
+      this.log(`${tempEmoji} Je vedro! (${this.state.temperature}°C) Spotřeba vody +50%`, 'danger');
+      // GA Tracking - Extreme Heat
+      this.track('extreme_temperature', {
+        type: 'heatwave',
+        temperature: this.state.temperature,
+        day: this.state.day
+      });
+    } else if (this.state.temperature > 23) {
+      this.log(`${tempEmoji} Je horko (${this.state.temperature}°C) Spotřeba vody +20%`, 'warning');
+    } else if (this.state.temperature >= 10 && this.state.temperature <= 20) {
+      this.log(`${tempEmoji} Příjemná teplota (${this.state.temperature}°C) Efektivita +10%!`, 'success');
+    } else {
+      this.log(`${tempEmoji} Teplota: ${this.state.temperature}°C`, 'info');
+    }
+    
+    // Heating decay
+    if (this.state.heating > 0) {
+      this.state.heating--;
+      if (this.state.heating === 0) {
+        this.log('🔥 Krb vychladl', 'info');
+      }
+    }
+
+    // Zpracuj entity
+    this.processEntities();
+
+    // Garantované kameny prvních 5 dní (min 2, max 3)
+    if (this.state.day <= 5) {
+      const stonesGiven = this.state.guaranteedStones || 0;
+      
+      if (stonesGiven < 2) {
+        // Ještě nemáme 2 → zagarantovat 1 kámen
+        this.addItem('stone', 1);
+        this.log(`🪨 Našel jsi kámen! (+1)`, 'item');
+        this.state.guaranteedStones = stonesGiven + 1;
+      } else if (stonesGiven === 2 && Math.random() < 0.5) {
+        // Máme 2, šance 50% na 3.
+        this.addItem('stone', 1);
+        this.log(`🪨 Našel jsi kámen! (+1)`, 'item');
+        this.state.guaranteedStones = 3;
+      }
+    }
+
+    // Náhodná událost
+    this.triggerRandomEvent();
+
+    // Denní spotřeba podle sezóny + POPULATION SCALING + TEMPERATURE EFFECTS
+    // První entita je "free" (základní spotřeba), každá další +40%
+    const effectivePopulation = Math.max(0, this.state.entities.length - 1);
+    const populationMultiplier = 1 + (effectivePopulation * 0.4);
+    
+    const hungerNeeded = Math.ceil(season.hungerDrain * populationMultiplier * tempEffects.hungerMultiplier);
+    const waterNeeded = Math.ceil(season.waterDrain * populationMultiplier * tempEffects.waterMultiplier);
+    
+    const foodAvailable = this.state.inventory.food || 0;
+    const waterAvailable = this.state.inventory.water_supply || 0;
+
+    // Info o populaci
+    if (this.state.entities.length > 0) {
+      this.log(`👥 Kolonie: ${this.state.entities.length + 1} obyvatel (spotřeba: ×${populationMultiplier.toFixed(1)})`, 'info');
+    }
+
+    // Spotřebuj jídlo
+    if (foodAvailable >= hungerNeeded) {
+      this.removeItem('food', hungerNeeded);
+      this.log(`🍖 Spotřebováno ${hungerNeeded} jídla`, 'info');
+    } else {
+      if (foodAvailable > 0) {
+        this.removeItem('food', foodAvailable);
+        this.log(`⚠️ Spotřebováno jen ${foodAvailable} jídla, chybí ${hungerNeeded - foodAvailable}`, 'warning');
+      }
+      this.gameOver('🍖 Kolonie umřela hlady');
+      return;
+    }
+
+    // Spotřebuj vodu
+    if (waterAvailable >= waterNeeded) {
+      this.removeItem('water_supply', waterNeeded);
+      this.log(`💧 Spotřebováno ${waterNeeded} vody`, 'info');
+    } else {
+      if (waterAvailable > 0) {
+        this.removeItem('water_supply', waterAvailable);
+        this.log(`⚠️ Spotřebována jen ${waterAvailable} voda, chybí ${waterNeeded - waterAvailable}`, 'warning');
+      }
+      this.gameOver('💧 Kolonie umřela žízní');
+      return;
+    }
+
+    this.render();
+  },
+
+  gameOver(reason = 'Nepřežil jsi') {
+    this.state.dead = true;
+    
+    // Zkontroluj jestli je to nový osobní rekord
+    const isNewBestRun = this.state.day > this.state.bestRun;
+    
+    // GA Tracking - Game Over (detailed)
+    this.track('game_over', {
+      death_reason: reason,
+      days_survived: this.state.day,
+      final_season: this.seasons[this.state.season].name,
+      population: this.state.entities.length + 1,
+      final_temperature: this.state.temperature,
+      food_remaining: this.state.inventory.food || 0,
+      water_remaining: this.state.inventory.water_supply || 0,
+      had_fireplace: (this.state.inventory.fireplace || 0) > 0,
+      had_insulation: (this.state.inventory.insulation || 0) > 0,
+      shelter_level: this.state.shelterLevel,
+      fire_was_active: this.state.fireActive, // 🔥
+      is_new_best: isNewBestRun
+    });
+    
+    // Pokud je nový rekord, zobraz nickname modal místo běžného game over
+    if (isNewBestRun) {
+      this.showNicknameModal(reason);
+      return;
+    }
+    
+    // Běžný game over screen
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.5s ease-out;
+    `;
+    overlay.innerHTML = `
+      <div style="
+        background: linear-gradient(145deg, #1a1410, #2d2416);
+        padding: 50px;
+        border-radius: 24px;
+        text-align: center;
+        border: 2px solid rgba(192, 80, 77, 0.5);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+        animation: scaleIn 0.5s ease-out 0.2s both;
+      ">
+        <h1 style="
+          color: #e67e7b;
+          font-size: 48px;
+          margin-bottom: 20px;
+          font-family: 'Space Mono', monospace;
+          text-shadow: 0 4px 12px rgba(230, 126, 123, 0.5);
+        ">💀 GAME OVER</h1>
+        <p style="
+          color: #d4a574;
+          font-size: 20px;
+          margin-bottom: 30px;
+          font-family: 'Crimson Pro', serif;
+        ">${reason}</p>
+        <p style="
+          color: #9a8670;
+          font-size: 16px;
+          margin-bottom: 30px;
+          font-family: 'Space Mono', monospace;
+        ">Přežil jsi ${this.state.day} dní</p>
+        <button onclick="game.reset()" style="
+          padding: 16px 32px;
+          font-size: 18px;
+          background: linear-gradient(135deg, #8b5a2b, #a67c52);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          cursor: pointer;
+          font-family: 'Space Mono', monospace;
+          font-weight: 700;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        ">🔄 Zkusit znovu</button>
+      </div>
+    `;
+    
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes scaleIn {
+        from { transform: scale(0.8); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(overlay);
+  },
+
+  showNicknameModal(reason) {
+    // Lock scroll
+    this.openModal();
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'nickname-modal';
+    
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-title">🎉 NOVÝ OSOBNÍ REKORD!</div>
+        <p class="nickname-info">Přežil jsi <strong>${this.state.day} dní</strong></p>
+        <p class="nickname-info" style="font-size: 12px; color: #9a8670; margin-top: -5px;">
+          Předchozí rekord: ${this.state.bestRun} dní
+        </p>
+        <p class="nickname-info" style="margin-top: 15px;">Zadej svou přezdívku pro žebříček:</p>
+        <input 
+          type="text" 
+          class="nickname-input" 
+          id="nickname-input"
+          placeholder="Tvoje přezdívka..." 
+          maxlength="20"
+          value="${this.state.playerNickname || ''}"
+        />
+        <div class="modal-buttons">
+          <button class="modal-btn modal-btn-primary" onclick="game.saveHighScoreToSheet()">
+            💾 Uložit do žebříčku
+          </button>
+          <button class="modal-btn modal-btn-secondary" onclick="game.skipNickname()">
+            Přeskočit
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Focus na input
+    setTimeout(() => {
+      document.getElementById('nickname-input').focus();
+    }, 100);
+    
+    // Enter key = save
+    document.getElementById('nickname-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        this.saveHighScoreToSheet();
+      }
+    });
+  },
+
+  saveHighScoreToSheet() {
+    const nicknameInput = document.getElementById('nickname-input');
+    const nickname = nicknameInput.value.trim() || 'Anonymous';
+    
+    // Ulož nickname do localStorage
+    this.state.playerNickname = nickname;
+    localStorage.setItem('doupe_nickname', nickname);
+    
+    // Ulož best run
+    this.state.bestRun = this.state.day;
+    localStorage.setItem('doupe_best_run', this.state.day.toString());
+    
+    // Odešli do Google Sheets
+    const data = {
+      playerId: this.state.playerId,
+      nickname: nickname,
+      days: this.state.day,
+      season: this.seasons[this.state.season].name,
+      population: this.state.entities.length + 1,
+      temperature: this.state.temperature,
+      foodLeft: this.state.inventory.food || 0,
+      waterLeft: this.state.inventory.water_supply || 0
+    };
+    
+    // Zobraz loading
+    nicknameInput.disabled = true;
+    nicknameInput.value = 'Ukládám...';
+    
+    this.backend('saveHighScore', data)
+      .then((response) => {
+        if (response.success) {
+          console.log('High score saved:', response);
+          this.closeModal('nickname-modal');
+          this.showGameOverScreen(`🏆 ${response.message}`);
+        } else if (response.standalone) {
+          // Standalone mode - save locally only
+          console.log('Standalone mode - saved locally');
+          this.closeModal('nickname-modal');
+          this.showGameOverScreen('💀 GAME OVER (Local save)');
+        } else {
+          throw new Error(response.message || 'Unknown error');
+        }
+      })
+      .catch((error) => {
+        console.error('Error saving high score:', error);
+        alert('Chyba při ukládání: ' + (error.message || error));
+        nicknameInput.disabled = false;
+        nicknameInput.value = nickname;
+      });
+  },
+
+  skipNickname() {
+    // Ulož best run bez odeslání do sheets
+    this.state.bestRun = this.state.day;
+    localStorage.setItem('doupe_best_run', this.state.day.toString());
+    
+    this.closeModal('nickname-modal');
+    this.showGameOverScreen('💀 GAME OVER');
+  },
+
+  showGameOverScreen(title) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.5s ease-out;
+    `;
+    overlay.innerHTML = `
+      <div style="
+        background: linear-gradient(145deg, #1a1410, #2d2416);
+        padding: 50px;
+        border-radius: 24px;
+        text-align: center;
+        border: 2px solid rgba(192, 80, 77, 0.5);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+        animation: scaleIn 0.5s ease-out 0.2s both;
+      ">
+        <h1 style="
+          color: #e67e7b;
+          font-size: 48px;
+          margin-bottom: 20px;
+          font-family: 'Space Mono', monospace;
+          text-shadow: 0 4px 12px rgba(230, 126, 123, 0.5);
+        ">${title}</h1>
+        <p style="
+          color: #9a8670;
+          font-size: 16px;
+          margin-bottom: 30px;
+          font-family: 'Space Mono', monospace;
+        ">Přežil jsi ${this.state.day} dní</p>
+        <button onclick="game.reset()" style="
+          padding: 16px 32px;
+          font-size: 18px;
+          background: linear-gradient(135deg, #8b5a2b, #a67c52);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          cursor: pointer;
+          font-family: 'Space Mono', monospace;
+          font-weight: 700;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        ">🔄 Zkusit znovu</button>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+  },
+
+  showLeaderboard() {
+    // Lock scroll
+    this.openModal();
+    
+    // Zobraz loading
+    const loadingModal = document.createElement('div');
+    loadingModal.className = 'modal-overlay';
+    loadingModal.id = 'leaderboard-modal';
+    loadingModal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-title">🏆 ŽEBŘÍČEK</div>
+        <p class="nickname-info">Načítám data...</p>
+      </div>
+    `;
+    document.body.appendChild(loadingModal);
+    
+    // Načti data z Sheets (přes API)
+    this.backend('getLeaderboard')
+      .then((response) => {
+        if (response.success) {
+          this.renderLeaderboard(response.data);
+        } else {
+          // API failed - show error or standalone
+          console.error('Leaderboard load failed:', response);
+          alert('Chyba při načítání žebříčku: ' + (response.message || response.error));
+          this.closeModal('leaderboard-modal');
+        }
+      })
+      .catch((error) => {
+        console.error('Leaderboard error:', error);
+        alert('Chyba při načítání žebříčku: ' + error.message);
+        this.closeModal('leaderboard-modal');
+      });
+  },
+
+  renderLeaderboard(data) {
+    const modal = document.getElementById('leaderboard-modal');
+    
+    let tableRows = '';
+    if (data.length === 0) {
+      tableRows = '<tr><td colspan="4" style="text-align: center; padding: 30px; color: #9a8670;">Žebříček je zatím prázdný...</td></tr>';
+    } else {
+      tableRows = data.map(entry => {
+        const rankClass = entry.rank <= 3 ? `rank-${entry.rank}` : 'rank-other';
+        const isYou = entry.playerId === this.state.playerId;
+        const rowClass = isYou ? 'your-rank' : '';
+        
+        return `
+          <tr class="${rowClass}">
+            <td><span class="rank-badge ${rankClass}">${entry.rank}</span></td>
+            <td>${entry.nickname}${isYou ? ' <strong>(ty)</strong>' : ''}</td>
+            <td><strong>${entry.days}d</strong></td>
+            <td>${this.getSeasonIcon(entry.season)} ${entry.population}👥</td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-title">🏆 TOP 10 KOLONIÍ</div>
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Jméno</th>
+              <th>Dny</th>
+              <th>Info</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+        <div class="modal-buttons">
+          <button class="modal-btn modal-btn-secondary" onclick="game.closeModal('leaderboard-modal')">
+            Zavřít
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  getSeasonIcon(seasonName) {
+    const icons = {
+      'Jaro': '🌱',
+      'Léto': '☀️',
+      'Podzim': '🍂',
+      'Zima': '❄️'
+    };
+    return icons[seasonName] || '🌍';
+  },
+
+  reset() {
+    // Odstraň game over overlay pokud existuje
+    const overlay = document.querySelector('div[style*="position: fixed"]');
+    if (overlay) overlay.remove();
+    
+    // Odstraň modals
+    const modal = document.getElementById('leaderboard-modal') || document.getElementById('nickname-modal');
+    if (modal) modal.remove();
+
+    // GA Tracking - Game Reset
+    const wasDead = this.state.dead;
+    const finalDay = this.state.day;
+    
+    this.track('game_reset', {
+      was_dead: wasDead,
+      previous_days: finalDay,
+      reset_type: wasDead ? 'after_death' : 'manual_restart'
+    });
+    
+    // Zachovej player data
+    const savedPlayerId = this.state.playerId;
+    const savedNickname = this.state.playerNickname;
+    const savedBestRun = this.state.bestRun;
+
+    this.state = {
+      day: 1,
+      season: 0,
+      dead: false,
+      inventory: {},
+      entities: [],
+      unlockedRecipes: [],
+      eventChance: 0.5,
+      temperature: 15,
+      shelterLevel: 1,
+      heating: 0,
+      guaranteedStones: 0,
+      playerId: savedPlayerId,
+      playerNickname: savedNickname,
+      bestRun: savedBestRun,
+      fireActive: false,
+      fireFuel: 0,
+      gold: 0
+    };
+
+    document.getElementById('log').innerHTML = '';
+    this.init();
+  },
+
+  renderInventory() {
+    const el = document.getElementById('inventory');
+    el.innerHTML = '';
+
+    const entries = Object.entries(this.state.inventory ?? {});
+
+    if (entries.length === 0) {
+      el.innerHTML = '<div class="empty-state">Inventář je prázdný...</div>';
+      return;
+    }
+
+    entries.forEach(([id, count]) => {
+      const item = this.items[id];
+      if (!item) return;
+
+      const card = document.createElement('div');
+      card.className = 'item-card';
+      
+      // 💰 ECONOMY: Sell button (pro všechno kromě food/water)
+      let actionButton = '';
+      if (item.sellPrice && id !== 'food' && id !== 'water_supply') {
+        actionButton = `
+          <button class="item-action-btn item-sell-btn" onclick="game.sellItem('${id}', 1)">
+            💰 ${item.sellPrice}g
+          </button>
+        `;
+      }
+      
+      // 💰 ECONOMY: Buy button (jen pro food/water)
+      if (item.buyPrice && (id === 'food' || id === 'water_supply')) {
+        actionButton = `
+          <button class="item-action-btn item-buy-btn" onclick="game.buyItem('${id}', 1)">
+            🏷️ ${item.buyPrice}g
+          </button>
+        `;
+      }
+      
+      card.innerHTML = `
+        <div class="item-icon">${item.icon}</div>
+        <div class="item-details">
+          <div class="item-name">${item.name}</div>
+          <div class="item-desc">${item.desc}</div>
+        </div>
+        <div class="item-count">×${count}</div>
+        ${actionButton}
+      `;
+
+      el.appendChild(card);
+    });
+  },
+
+  renderRecipes() {
+    const el = document.getElementById('recipes');
+    el.innerHTML = '';
+
+    // Zobraz jen odemčené recepty
+    const availableRecipes = this.recipes.filter(r => 
+      this.state.unlockedRecipes.includes(r.id)
+    );
+
+    if (availableRecipes.length === 0) {
+      el.innerHTML = '<div class="empty-state">Zatím žádné recepty...</div>';
+      return;
+    }
+
+    availableRecipes.forEach(recipe => {
+      const canCraft = this.hasMaterials(recipe.materials) && 
+                       this.hasTools(recipe.requires);
+
+      const card = document.createElement('div');
+      card.className = `recipe-card ${canCraft ? 'can-craft' : 'cannot-craft'}`;
+
+      const mats = Object.entries(recipe.materials)
+        .map(([id, needed]) => {
+          const have = this.state.inventory[id] || 0;
+          const item = this.items[id];
+          return `${item.icon} ${have}/${needed}`;
+        })
+        .join(' • ');
+
+      let requiresText = '';
+      if (recipe.requires) {
+        requiresText = ' | Vyžaduje: ' + Object.keys(recipe.requires)
+          .map(id => this.items[id].icon)
+          .join(' ');
+      }
+
+      card.innerHTML = `
+        <div class="recipe-header">
+          <div class="recipe-icon">${recipe.icon}</div>
+          <div class="recipe-name">${recipe.name}</div>
+        </div>
+        <div class="recipe-materials">${mats}${requiresText}</div>
+      `;
+
+      if (canCraft) {
+        card.onclick = () => this.craft(recipe.id);
+      }
+
+      el.appendChild(card);
+    });
+  },
+
+  renderEntities() {
+    const section = document.getElementById('entities-section');
+    const el = document.getElementById('entities');
+
+    if (this.state.entities.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = 'block';
+    el.innerHTML = '';
+
+    this.state.entities.forEach(entity => {
+      const type = this.entityTypes.find(t => t.id === entity.type);
+      
+      const card = document.createElement('div');
+      card.className = 'entity-card';
+
+      let statusText = 'Nečinný';
+      if (entity.status === 'working') {
+        statusText = `${entity.action.name} (${entity.daysLeft} dní)`;
+      }
+
+      card.innerHTML = `
+        <div class="entity-header">
+          <div class="entity-icon">${entity.icon}</div>
+          <div class="entity-info">
+            <div class="entity-name">${entity.name}</div>
+            <div class="entity-status">${statusText}</div>
+          </div>
+        </div>
+      `;
+
+      if (entity.status === 'idle') {
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'entity-actions';
+
+        type.actions.forEach((action, index) => {
+          const canDo = this.hasTools(action.requires);
+          const btn = document.createElement('button');
+          btn.className = 'entity-action-btn';
+          btn.textContent = action.name;
+          btn.disabled = !canDo;
+          btn.onclick = () => this.assignAction(entity.id, index);
+          actionsDiv.appendChild(btn);
+        });
+
+        card.appendChild(actionsDiv);
+      }
+
+      el.appendChild(card);
+    });
+  },
+
+  render() {
+    document.getElementById('day').textContent = this.state.day;
+    const season = this.seasons[this.state.season];
+    document.getElementById('season').textContent = season.name;
+
+    // Population multiplier + temperature effects pro consumption
+    const effectivePopulation = Math.max(0, this.state.entities.length - 1);
+    const populationMultiplier = 1 + (effectivePopulation * 0.4);
+    const tempEffects = this.getTemperatureEffects();
+
+    // Zobrazíme kolik máš vs. kolik potřebuješ na další den
+    const hungerNeeded = Math.ceil(season.hungerDrain * populationMultiplier * tempEffects.hungerMultiplier);
+    const waterNeeded = Math.ceil(season.waterDrain * populationMultiplier * tempEffects.waterMultiplier);
+    
+    const foodHave = this.state.inventory.food || 0;
+    const waterHave = this.state.inventory.water_supply || 0;
+    
+    // Vypočítej kolik dní ti to vydrží
+    const foodDays = hungerNeeded > 0 ? Math.floor(foodHave / hungerNeeded) : 0;
+    const waterDays = waterNeeded > 0 ? Math.floor(waterHave / waterNeeded) : 0;
+    
+    // Bar ukazuje kolik dní ti to vydrží (max 20 dní = 100%)
+    const hungerPercent = Math.min(100, (foodDays / 20) * 100);
+    const waterPercent = Math.min(100, (waterDays / 20) * 100);
+
+    document.getElementById('hunger-fill').style.width = hungerPercent + '%';
+    document.getElementById('hunger-fill').textContent = `${foodHave} (${foodDays}d)`;
+
+    document.getElementById('water-fill').style.width = waterPercent + '%';
+    document.getElementById('water-fill').textContent = `${waterHave} (${waterDays}d)`;
+
+    // Temperature bar
+    const temp = this.state.temperature;
+    const tempEmoji = this.getTemperatureEmoji(temp);
+    document.getElementById('temp-emoji').textContent = tempEmoji;
+    
+    // Temperature bar width: -10°C = 0%, +40°C = 100% (range 50°C)
+    const tempPercent = Math.max(0, Math.min(100, ((temp + 10) / 50) * 100));
+    document.getElementById('temp-fill').style.width = tempPercent + '%';
+    
+    let tempText = `${temp}°C`;
+    if (this.state.heating > 0) {
+      tempText += ` 🔥×${this.state.heating}`;
+    }
+    if (this.state.shelterLevel > 1) {
+      tempText += ` 🧱×${Math.round((this.state.shelterLevel - 1) * 2)}`;
+    }
+    document.getElementById('temp-fill').textContent = tempText;
+
+    this.renderInventory();
+    this.renderRecipes();
+    this.renderEntities();
+
+    // Auto-unlock receptů podle inventáře
+    this.autoUnlockRecipes();
+    // 🔥 Update fire indicator
+    this.updateFireIndicator();
+    // 💰 Update gold display
+    document.getElementById('gold-amount').textContent = this.state.gold;
+  },
+
+  autoUnlockRecipes() {
+    let unlocked = false;
+    
+    this.recipes.forEach(recipe => {
+      if (this.state.unlockedRecipes.includes(recipe.id)) return;
+      
+      // Zkontroluj jestli máš materiály na tento recept
+      const hasSomeMaterials = Object.keys(recipe.materials).some(
+        matId => (this.state.inventory[matId] || 0) > 0
+      );
+
+      // Tier 1-2: unlock když máš materiály
+      if (hasSomeMaterials && recipe.tier <= 2) {
+        this.state.unlockedRecipes.push(recipe.id);
+        unlocked = true;
+      }
+
+      // Tier 3+: unlock když máš required tools
+      if (recipe.tier >= 3 && recipe.requires) {
+        if (this.hasTools(recipe.requires)) {
+          this.state.unlockedRecipes.push(recipe.id);
+          unlocked = true;
+        }
+      }
+      
+      // Tier 3+ BEZ requires: unlock když máš materiály (luk, fireplace, insulation)
+      if (recipe.tier >= 3 && !recipe.requires && hasSomeMaterials) {
+        this.state.unlockedRecipes.push(recipe.id);
+        unlocked = true;
+      }
+    });
+
+    if (unlocked) {
+      this.renderRecipes();
+    }
+  }
+};
+
+window.onload = () => game.init();
+</script>
+</body>
+</html>

@@ -6,14 +6,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>🏠 Doupě 2 - Survival Crafting</title>
-
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-KG5TC8XH');</script>
-<!-- End Google Tag Manager -->
   
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-SZJL9L81VE"></script>
@@ -24,6 +16,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   gtag('config', 'G-SZJL9L81VE');
 </script>
+<!-- Google Analytics -->
+<!-- 
+  ⚠️ CLIENT-SIDE GA4 NEFUNGUJE V APPS SCRIPT (iframe + cross-origin issues)
+  Používáme SERVER-SIDE tracking přes Measurement Protocol API
+  viz kod.gs -> trackEvent() funkce
+-->
+<!-- End Google Analytics -->
 
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -45,9 +44,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 }
 
 html {
+  /* Prevent iOS zoom on input focus */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Smooth scrolling for better UX */
   scroll-behavior: smooth;
+  /* iOS safe area support */
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
@@ -60,14 +62,17 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  min-height: -webkit-fill-available;
+  min-height: -webkit-fill-available; /* iOS Safari fix */
   padding: 20px;
   position: relative;
   overflow-x: hidden;
+  /* Better touch scrolling on iOS */
   -webkit-overflow-scrolling: touch;
+  /* Prevent pull-to-refresh on mobile */
   overscroll-behavior-y: contain;
 }
 
+/* Prevent body scroll when modal is open */
 body.modal-open {
   overflow: hidden;
   position: fixed;
@@ -112,6 +117,7 @@ body::before {
   position: relative;
   z-index: 1;
   animation: containerAppear 0.6s ease-out;
+  /* Better touch handling */
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
 }
@@ -122,6 +128,7 @@ body::before {
     border-radius: 16px;
     max-width: 100%;
     margin: 0 10px;
+    /* Ensure proper touch scrolling */
     -webkit-overflow-scrolling: touch;
   }
 }
@@ -163,6 +170,85 @@ body::before {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   FOOTER - Patička (mirror of header)
+   ═══════════════════════════════════════════════════════════════ */
+
+#footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 2px solid rgba(139, 90, 43, 0.3);
+  padding-top: 12px;
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  #footer {
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    text-align: center;
+  }
+  
+  #footer .footer-info {
+    order: 3;
+    flex-basis: 100%;
+  }
+}
+
+.footer-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  color: #d4a574;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+  .footer-title {
+    font-size: 13px;
+  }
+}
+
+.footer-version {
+  font-family: 'Crimson Pro', serif;
+  font-size: 12px;
+  color: #9a8670;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .footer-version {
+    font-size: 11px;
+  }
+}
+
+.footer-info {
+  text-align: right;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: #9a8670;
+}
+
+@media (max-width: 768px) {
+  .footer-info {
+    text-align: center;
+    font-size: 10px;
+  }
+}
+
+.footer-link {
+  color: #d4a574;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.footer-link:hover {
+  color: #e8c547;
+  text-decoration: underline;
+}
+
 #header h2 {
   font-family: 'Space Mono', monospace;
   font-size: 24px;
@@ -192,6 +278,19 @@ body::before {
 @keyframes emberGlow {
   0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 120, 40, 0.6)); }
   50% { filter: drop-shadow(0 0 12px rgba(255, 100, 20, 0.9)); }
+}
+
+.ember-icon-small {
+  display: inline-block;
+  font-size: 14px;
+  filter: drop-shadow(0 0 6px rgba(255, 120, 40, 0.6));
+  animation: emberGlow 3s ease-in-out infinite;
+}
+
+@media (max-width: 768px) {
+  .ember-icon-small {
+    font-size: 13px;
+  }
 }
 
 #season-info {
@@ -225,7 +324,7 @@ body::before {
   color: #a08060;
   opacity: 0.8;
 }
-
+/* 🔥 FIRE INDICATOR STYLES */
 .fire-indicator {
   display: inline-flex;
   align-items: center;
@@ -285,6 +384,7 @@ body::before {
   }
 }
 
+/* 💰 GOLD DISPLAY STYLES */
 .gold-display {
   display: inline-flex;
   align-items: center;
@@ -447,6 +547,7 @@ body::before {
   font-size: 12px;
   line-height: 1.5;
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+  /* Better touch scrolling */
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
@@ -456,6 +557,7 @@ body::before {
     height: 120px;
     font-size: 11px;
     padding: 10px;
+    /* Ensure smooth scrolling on touch */
     scroll-behavior: smooth;
   }
 }
@@ -556,6 +658,7 @@ body::before {
   gap: 6px;
 }
 
+/* Crafting recipes: 3-column tile layout */
 #recipes {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
@@ -657,6 +760,7 @@ body::before {
   flex-shrink: 0;
 }
 
+/* 💰 ECONOMY: Sell & Buy Buttons */
 .item-action-btn {
   padding: 5px 10px;
   font-size: 11px;
@@ -929,6 +1033,7 @@ button {
   font-family: 'Space Mono', monospace;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  /* Better touch handling */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   user-select: none;
@@ -940,6 +1045,7 @@ button {
     padding: 14px 20px;
     font-size: 15px;
     min-height: 48px;
+    /* Increase touch target size */
     min-width: 48px;
   }
 }
@@ -951,6 +1057,7 @@ button:hover {
 
 button:active {
   transform: translateY(-1px);
+  /* Visual feedback on touch */
   opacity: 0.8;
 }
 
@@ -1035,6 +1142,7 @@ button:active {
 .season-autumn { background: rgba(212, 165, 116, 0.2); color: #d4a574; }
 .season-winter { background: rgba(111, 180, 197, 0.2); color: #6fb4c5; }
 
+/* Leaderboard & Nickname Modals */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1044,8 +1152,10 @@ button:active {
   justify-content: center;
   z-index: 10000;
   animation: fadeIn 0.3s ease-out;
+  /* Prevent scroll behind modal */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Prevent body scroll leak */
   overscroll-behavior: contain;
 }
 
@@ -1060,7 +1170,9 @@ button:active {
   animation: scaleIn 0.4s ease-out;
   max-height: 90vh;
   overflow-y: auto;
+  /* Better scrolling on touch devices */
   -webkit-overflow-scrolling: touch;
+  /* Prevent margin collapse */
   position: relative;
 }
 
@@ -1101,16 +1213,6 @@ button:active {
   }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
 .modal-title {
   font-family: 'Space Mono', monospace;
   font-size: 28px;
@@ -1123,7 +1225,7 @@ button:active {
 .nickname-input {
   width: 100%;
   padding: 12px 16px;
-  font-size: 16px;
+  font-size: 16px; /* iOS needs 16px+ to prevent auto-zoom */
   font-family: 'Crimson Pro', serif;
   background: rgba(20, 16, 12, 0.8);
   border: 2px solid rgba(139, 90, 43, 0.3);
@@ -1215,7 +1317,6 @@ button:active {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
-
 .modal-btn-secondary {
   background: rgba(139, 90, 43, 0.2);
   color: #d4a574;
@@ -1236,21 +1337,18 @@ button:active {
 <body>
 <div id="game-container">
 
-<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KG5TC8XH"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
-
   <div id="header">
     <h2>🏠 DOUPĚ</h2>
     <h3>...by Ondrex's Ember🔥</h3>
     <div id="season-info">
       <span class="big">Den <span id="day">1</span></span>
       <span class="small"><span id="season">Jaro</span></span>
+      <!-- 🔥 FIRE INDICATOR -->
       <span class="fire-indicator inactive" id="fire-indicator">
         <span class="fire-icon">🔥</span>
         <span class="fire-status">Bez ohně</span>
       </span>
+      <!-- 💰 GOLD DISPLAY -->
       <span class="gold-display" id="gold-display">
         <span class="gold-icon">💰</span>
         <span class="gold-amount" id="gold-amount">0</span>
@@ -1309,9 +1407,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   <div class="controls">
     <button class="primary" onclick="game.nextDay()">⏰ Další den</button>
-    <button class="primary" onclick="game.saveGame()">📜 Uložit hru</button>
     <button class="primary" onclick="game.showLeaderboard()">🏆 Žebříček</button>
-    <button class="danger" onclick="game.showResetConfirmation()">🔄 Nový začátek</button>
+    <button class="danger" onclick="game.reset()">🔄 Nový začátek</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       FOOTER / PATIČKA
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="footer">
+    <div>
+      <span class="footer-title">🏠 DOUPĚ v2.0</span>
+      <span class="footer-version"> • by Ondrex's <span class="ember-icon-small">🔥</span></span>
+    </div>
+    <div class="footer-info">
+      <span id="footer-stats">Kolonie: 1 👥 | Rekord: <span id="footer-best-run">0</span>d</span>
+      <br>
+      <span class="footer-link" onclick="game.showLeaderboard()">📊 Žebříček</span>
+      <span style="opacity: 0.5;"> • </span>
+      <span class="footer-link" onclick="game.showAbout()">ℹ️ O hře</span>
+    </div>
   </div>
 
 </div>
@@ -1319,96 +1433,133 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <script>
 const game = {
 
+  // 🔧 Modal Management Helpers
   openModal() {
+    // Lock body scroll when modal opens
     document.body.classList.add('modal-open');
+    // Store scroll position
     this._scrollY = window.scrollY;
     document.body.style.top = `-${this._scrollY}px`;
   },
 
   closeModal(modalId) {
+    // Remove modal
     const modal = document.getElementById(modalId);
     if (modal) modal.remove();
     
+    // Unlock body scroll
     document.body.classList.remove('modal-open');
     document.body.style.top = '';
     
+    // Restore scroll position
     if (this._scrollY !== undefined) {
       window.scrollTo(0, this._scrollY);
       this._scrollY = undefined;
     }
   },
 
+  // 🌐 HYBRID BACKEND ADAPTER
+  // Automatically detects environment and uses appropriate backend method
+  
+  // ⚠️ IMPORTANT: Replace with your actual Apps Script Web App URL
   BACKEND_API_URL: 'https://script.google.com/macros/s/AKfycbxccmovB6aNsLFBaG09DHFUpezvgNkVDgcLEBf25rQ7O9QItCvM49iL13m3IUJMG83V/exec',
   
   get isAppsScript() {
+    // Check if we're running in Apps Script environment
     return typeof google !== 'undefined' && 
            google.script && 
            google.script.run;
   },
 
-  async backend(functionName, data = null) {
-    if (this.isAppsScript) {
-      return new Promise((resolve, reject) => {
-        try {
-          const runner = google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(reject);
-          
-          if (data !== null) {
-            runner[functionName](data);
-          } else {
-            runner[functionName]();
-          }
-        } catch(error) {
-          reject(error);
-        }
-      });
-    }
-    
+  // ═══════════════════════════════════════════════════════════════
+// 🔧 UPDATED BACKEND FUNCTION - Použij GET místo POST (CORS fix)
+// ═══════════════════════════════════════════════════════════════
+
+// Najdi v index.html funkci backend() (cca řádek 1360)
+// a NAHRAĎ JI tímto:
+
+// ═══════════════════════════════════════════════════════════════
+// 🔧 UPDATED BACKEND FUNCTION - JSONP pro CORS fix
+// ═══════════════════════════════════════════════════════════════
+
+// V index.html najdi funkci backend() a NAHRAĎ JI celou tímto:
+
+async backend(functionName, data = null) {
+  // Apps Script environment - use google.script.run (direct)
+  if (this.isAppsScript) {
     return new Promise((resolve, reject) => {
       try {
-        console.log(`🌐 API call: ${functionName}`);
+        const runner = google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject);
         
-        const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        
-        window[callbackName] = function(response) {
-          console.log(`✅ API response:`, response);
-          delete window[callbackName];
-          document.body.removeChild(script);
-          resolve(response);
-        };
-        
-        const params = new URLSearchParams({
-          action: functionName,
-          data: JSON.stringify(data || {}),
-          callback: callbackName
-        });
-        
-        const script = document.createElement('script');
-        script.src = `${this.BACKEND_API_URL}?${params}`;
-        script.onerror = function() {
-          console.error(`❌ API call failed: ${functionName}`);
-          delete window[callbackName];
-          document.body.removeChild(script);
-          
-          if (functionName === 'trackEvent') {
-            resolve({ success: true, message: 'Tracking skipped (API unavailable)' });
-          } else if (functionName === 'logTransaction') {
-            resolve({ success: true, message: 'Transaction logging skipped (API unavailable)' });
-          } else {
-            reject(new Error('API call failed'));
-          }
-        };
-        
-        document.body.appendChild(script);
-        
+        if (data !== null) {
+          runner[functionName](data);
+        } else {
+          runner[functionName]();
+        }
       } catch(error) {
-        console.error(`❌ API call failed:`, error);
         reject(error);
       }
     });
-  },
-
+  }
+  
+  // GitHub environment - USE JSONP (CORS workaround)
+  return new Promise((resolve, reject) => {
+    try {
+      console.log(`🌐 API call: ${functionName}`);
+      
+      // Generate unique callback name
+      const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      
+      // Create global callback function
+      window[callbackName] = function(response) {
+        console.log(`✅ API response:`, response);
+        
+        // Cleanup
+        delete window[callbackName];
+        document.body.removeChild(script);
+        
+        // Resolve promise
+        resolve(response);
+      };
+      
+      // Build URL with params
+      const params = new URLSearchParams({
+        action: functionName,
+        data: JSON.stringify(data || {}),
+        callback: callbackName
+      });
+      
+      // Create script tag for JSONP
+      const script = document.createElement('script');
+      script.src = `${this.BACKEND_API_URL}?${params}`;
+      script.onerror = function() {
+        console.error(`❌ API call failed: ${functionName}`);
+        
+        // Cleanup
+        delete window[callbackName];
+        document.body.removeChild(script);
+        
+        // Return mock success for non-critical functions
+        if (functionName === 'trackEvent') {
+          resolve({ success: true, message: 'Tracking skipped (API unavailable)' });
+        } else if (functionName === 'logTransaction') {
+          resolve({ success: true, message: 'Transaction logging skipped (API unavailable)' });
+        } else {
+          reject(new Error('API call failed'));
+        }
+      };
+      
+      // Add script to page
+      document.body.appendChild(script);
+      
+    } catch(error) {
+      console.error(`❌ API call failed:`, error);
+      reject(error);
+    }
+  });
+},
   state: {
     day: 1,
     season: 0,
@@ -1424,8 +1575,10 @@ const game = {
     playerId: null,
     playerNickname: null,
     bestRun: 0,
+    // 🔥 FIRE SYSTEM
     fireActive: false,
     fireFuel: 0,
+    // 💰 ECONOMY SYSTEM
     gold: 0
   },
 
@@ -1469,6 +1622,7 @@ const game = {
   ],
 
   items: {
+    // 💰 ECONOMY: sellPrice = co dostanu za prodej, buyPrice = co musím zaplatit
     wood: { name: 'Dřevo', icon: '🌳', desc: 'Základní stavební materiál', sellPrice: 2 },
     stone: { name: 'Kámen', icon: '⛰️', desc: 'Tvrdý materiál pro nástroje', sellPrice: 3 },
     fiber: { name: 'Vlákna', icon: '🌾', desc: 'Pro výrobu provazů', sellPrice: 1 },
@@ -1494,6 +1648,7 @@ const game = {
   },
 
   recipes: [
+    // Tier 1 - Základy
     {
       id: 'stick',
       name: 'Hůl',
@@ -1536,6 +1691,8 @@ const game = {
       tier: 1,
       desc: 'Pro sběr bobulí a hub'
     },
+    
+    // Tier 2 - Základní nástroje
     {
       id: 'knife',
       name: 'Kamenný nůž',
@@ -1554,6 +1711,7 @@ const game = {
       tier: 2,
       unlock: 'first_entity'
     },
+    // 🔥 FIRE SYSTEM - Bow Drill (Tier 2)
     {
       id: 'start_fire_drill',
       name: 'Založit oheň (Bow Drill)',
@@ -1566,6 +1724,8 @@ const game = {
       fireChance: 0.8,
       fireMethod: 'bow_drill'
     },
+
+    // Tier 3 - Pokročilé
     {
       id: 'plank',
       name: 'Prkno',
@@ -1593,6 +1753,7 @@ const game = {
       tier: 3,
       unlock: 'hunter_entity'
     },
+    // 🔥 FIRE SYSTEM - Křesadlo (Tier 3)
     {
       id: 'start_fire_flint',
       name: 'Založit oheň (Křesadlo)',
@@ -1602,9 +1763,11 @@ const game = {
       tier: 3,
       desc: '100% úspěch',
       isFireStarter: true,
-      fireChance: 1.0,
+      fireChance: 0.8,
       fireMethod: 'flint_steel'
     },
+    
+    // 🔥 FIRE-BASED CRAFTING
     {
       id: 'dried_meat',
       name: 'Sušené maso',
@@ -1615,6 +1778,7 @@ const game = {
       tier: 3,
       desc: 'Vydrží přes zimu, neskazí se'
     },
+    // Tier 4 - Infrastruktura
     {
       id: 'storage',
       name: 'Sklad na zimu',
@@ -1643,6 +1807,7 @@ const game = {
     }
   ],
 
+  // Události co můžou nastat každý den
   randomEvents: [
     {
       id: 'wood_fall',
@@ -1663,7 +1828,7 @@ const game = {
       message: '🌾 Našel jsi svazky vláken'
     },
     {
-      id: 'bark_find',
+      id: 'bark_find', // 🔥 NEW EVENT
       chance: 0.35,
       items: { bark: [2, 6] },
       message: '🟫 Kůra spadla ze stromu'
@@ -1683,7 +1848,7 @@ const game = {
     {
       id: 'seed_find',
       chance: 0.3,
-      season: [0],
+      season: [0], // pouze na jaře
       items: { seeds: [2, 4] },
       message: '🌱 Vítr přinesl semena'
     },
@@ -1741,6 +1906,7 @@ const game = {
           isHeating: true,
           result: () => ({ heating: 1 })
         },
+        // 🔥 NEW ACTION - Přiložit do ohně
         {
           name: '🌳Přiložit do ohně',
           duration: 1,
@@ -1769,20 +1935,27 @@ const game = {
     }
   ],
 
+  // Google Analytics 4 - Server-Side Tracking
   track(eventName, params = {}) {
+    // Server-side tracking přes Google Apps Script backend
+    // Measurement Protocol API zajišťuje spolehlivé měření bez cookies/iframe omezení
     try {
-      const clientId = this.state.playerId;
+      const clientId = this.state.playerId; // Použij player ID jako client_id
       
       if (clientId) {
+        // Use hybrid backend adapter
         this.backend('trackEvent', { clientId, eventName, params })
           .then(() => {
+            // Success - tiché logování (neruší hráče)
             console.log('✓ GA4 tracked:', eventName);
           })
           .catch((error) => {
+            // Failure - tiché logování (tracking nesmí crashnout hru)
             console.warn('GA4 tracking failed:', error);
           });
       }
     } catch(e) {
+      // Catch any errors - tracking nesmí nikdy crashnout hru
       console.warn('GA4 tracking error:', e);
     }
   },
@@ -1790,14 +1963,18 @@ const game = {
   calculateTemperature() {
     const season = this.seasons[this.state.season];
     
+    // Base temperature ze sezóny s náhodnou variance
     const variance = (Math.random() - 0.5) * 2 * season.tempVariance;
     let targetTemp = season.baseTemp + variance;
     
+    // Heating bonus (každé topení = +5°C, max 3 dny)
     const heatingBonus = Math.min(this.state.heating, 3) * 5;
     
+    // Shelter bonus (lepší izolace = menší rozdíl od ideální teploty)
     const insulations = this.state.inventory.insulation || 0;
     const shelterLevel = 1 + (insulations * 0.5);
     
+    // Pokud je venku moc chladno/teplo, shelter pomáhá
     const idealTemp = 15;
     const diff = targetTemp - idealTemp;
     const shelteredDiff = diff / shelterLevel;
@@ -1823,6 +2000,7 @@ const game = {
     let waterMultiplier = 1;
     let efficiency = 1;
     
+    // Příliš chladno
     if (temp < 5) {
       hungerMultiplier = 1.5;
       efficiency = 0.7;
@@ -1831,6 +2009,7 @@ const game = {
       efficiency = 0.85;
     }
     
+    // Příliš teplo
     if (temp > 28) {
       waterMultiplier = 1.5;
       efficiency = 0.7;
@@ -1839,13 +2018,14 @@ const game = {
       efficiency = 0.85;
     }
     
+    // Ideální teplota (10-20°C)
     if (temp >= 10 && temp <= 20) {
-      efficiency = 1.1;
+      efficiency = 1.1; // bonus!
     }
     
     return { hungerMultiplier, waterMultiplier, efficiency };
   },
-
+  // 🔥 UPDATE FIRE INDICATOR UI
   updateFireIndicator() {
     const indicator = document.getElementById('fire-indicator');
     const statusText = indicator.querySelector('.fire-status');
@@ -1860,58 +2040,63 @@ const game = {
       statusText.textContent = 'Bez ohně';
     }
   },
-
-  // 💾 SAVE/LOAD SYSTEM
-  checkForSavedGame() {
-    this.backend('loadGameState')
-      .then((response) => {
-        if (response.success && response.data) {
-          this._savedGameData = response.data;
-          this.showLoadGameModal();
-        }
-      })
-      .catch((error) => {
-        console.warn('Save check failed:', error);
-      });
+  
+  // 📊 UPDATE FOOTER STATS
+  updateFooterStats() {
+    const population = this.state.entities.length + 1; // +1 for player
+    const bestRun = this.state.bestRun;
+    
+    document.getElementById('footer-stats').innerHTML = 
+      `Kolonie: ${population} 👥 | Rekord: <span id="footer-best-run">${bestRun}</span>d`;
   },
-
-  showLoadGameModal() {
+  
+  // ℹ️ SHOW ABOUT MODAL
+  showAbout() {
     this.openModal();
     
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
-    modal.id = 'load-game-modal';
-    
-    const savedState = JSON.parse(this._savedGameData);
+    modal.id = 'about-modal';
     
     modal.innerHTML = `
       <div class="modal-content">
-        <div class="modal-title">💾 NALEZENA ULOŽENÁ HRA</div>
+        <div class="modal-title">ℹ️ O HŘE DOUPĚ</div>
         
-        <div style="
-          background: rgba(139, 90, 43, 0.15);
-          border: 1px solid rgba(139, 90, 43, 0.3);
-          border-radius: 10px;
-          padding: 15px;
-          margin: 20px 0;
-          text-align: left;
-        ">
-          <div style="color: #d4a574; margin-bottom: 8px; font-weight: 600;">📊 Uložená hra:</div>
-          <div style="color: #b89968; font-size: 14px; line-height: 1.8;">
-            • <strong>Den ${savedState.day}</strong> (${this.seasons[savedState.season].name})<br>
-            • <strong>${savedState.entities.length + 1} obyvatel</strong><br>
-            • <strong>${savedState.inventory.food || 0} jídla</strong>, 
-              <strong>${savedState.inventory.water_supply || 0} vody</strong><br>
-            • <strong>${savedState.gold || 0}g zlata</strong>
-          </div>
+        <div style="text-align: left; color: #b89968; line-height: 1.6; margin: 20px 0;">
+          <p style="margin-bottom: 15px;">
+            <strong style="color: #d4a574;">Doupě v2.0</strong> je survival crafting hra 
+            o přežití kolonie v drsném prostředí.
+          </p>
+          
+          <p style="margin-bottom: 15px;">
+            🎯 <strong>Cíl:</strong> Udržet kolonii naživu co nejdéle. 
+            Sbírej suroviny, craftuj nástroje, přijímej obyvatele a překonávej roční období.
+          </p>
+          
+          <p style="margin-bottom: 15px;">
+            🔥 <strong>Mechaniky:</strong><br>
+            • Sezónní změny každých 15 dní<br>
+            • Systém teploty a vytápění<br>
+            • Oheň a sušení masa<br>
+            • Ekonomika - prodávej a nakupuj<br>
+            • Žebříček nejlepších kolonií
+          </p>
+          
+          <p style="margin-bottom: 15px;">
+            👤 <strong>Autor:</strong> Ondrex's Ember 🔥<br>
+            📅 <strong>Verze:</strong> 2.0 (Únor 2026)<br>
+            🔧 <strong>Tech:</strong> Google Apps Script + Sheets
+          </p>
+          
+          <p style="font-size: 11px; opacity: 0.7; margin-top: 20px;">
+            💡 Tip: Nejlepší strategie je vyvážit craftování nástrojů, 
+            budování infrastruktury a udržování zásob. Nezapomeň na zimu!
+          </p>
         </div>
         
         <div class="modal-buttons">
-          <button class="modal-btn modal-btn-primary" onclick="game.loadSavedGame()">
-            ▶️ Pokračovat
-          </button>
-          <button class="modal-btn modal-btn-secondary" onclick="game.startNewGame()">
-            🆕 Nová hra
+          <button class="modal-btn modal-btn-primary" onclick="game.closeModal('about-modal')">
+            👍 Rozumím
           </button>
         </div>
       </div>
@@ -1919,55 +2104,9 @@ const game = {
     
     document.body.appendChild(modal);
   },
-
-  loadSavedGame() {
-    const savedState = JSON.parse(this._savedGameData);
-    this.state = savedState;
-    
-    this.closeModal('load-game-modal');
-    
-    this.log('💾 Hra načtena!', 'success');
-    this.showNotification('💾 Hra načtena!');
-    
-    this.track('game_loaded', {
-      day: this.state.day,
-      season: this.seasons[this.state.season].name
-    });
-    
-    this.render();
-  },
-
-  startNewGame() {
-    this.closeModal('load-game-modal');
-    delete this._savedGameData;
-  },
-
-  saveGame() {
-    const dataToSave = JSON.stringify(this.state);
-    
-    this.backend('saveGameState', dataToSave)
-      .then((response) => {
-        if (response.success) {
-          this.log('✅ Hra uložena', 'success');
-          this.showNotification('💾 Hra uložena!');
-          
-          this.track('game_saved', {
-            day: this.state.day,
-            season: this.seasons[this.state.season].name
-          });
-        } else {
-          this.log('❌ Chyba při ukládání', 'danger');
-        }
-      })
-      .catch((error) => {
-        console.error('Save error:', error);
-        this.log('❌ Chyba při ukládání', 'danger');
-      });
-  },
-
+  
   init() {
-    this.checkForSavedGame();
-    
+    // Player ID systém
     let playerId = localStorage.getItem('doupe_player_id');
     if (!playerId) {
       playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -1975,6 +2114,7 @@ const game = {
     }
     this.state.playerId = playerId;
     
+    // Načti best run a nickname
     this.state.bestRun = parseInt(localStorage.getItem('doupe_best_run') || '0');
     this.state.playerNickname = localStorage.getItem('doupe_nickname') || null;
     
@@ -1988,13 +2128,15 @@ const game = {
     this.state.shelterLevel = 1;
     this.state.heating = 0;
     this.state.guaranteedStones = 0;
-    this.state.fireActive = false;
-    this.state.fireFuel = 0;
+    this.state.fireActive = false; // 🔥
+    this.state.fireFuel = 0; // 🔥
     this.state.unlockedRecipes = ['stick', 'rope', 'bowl', 'trap', 'basket'];
     
+    // 🌐 Environment Detection
     const environment = this.isAppsScript ? 'Apps Script (Full Features)' : 'Standalone (Local Save)';
     console.log(`🎮 Doupě 2 - Running in: ${environment}`);
     
+    // GA4 Tracking - Page View
     this.track('page_view', {
       page_title: 'Doupě - Survival Crafting',
       page_location: window.location.href,
@@ -2002,6 +2144,7 @@ const game = {
       environment: environment
     });
     
+    // GA4 Tracking - Game Start
     this.track('game_start', {
       starting_food: 60,
       starting_water: 60,
@@ -2010,6 +2153,7 @@ const game = {
       environment: environment
     });
     
+    // Atmosférický úvod
     this.log('🌲 Probouzíš se v tichém doupěti, kdesi hluboko v temných vlažných lesích... Víš, že kolem to vře, ale tobě je příjemně chladno.', 'info');
     this.log('Vzduch je ale těžký. Kolonie strádá a nachází se na pokraji zániku. Hlad, žízeň, mráz - tvoji věční nepřátelé.', 'warning');
     this.log('Léta sucha vysušila prameny. Zimy jsou kruté, jídlo vzácné. Přežití není zaručeno. Spíše vyvráceno. Máš na to?', 'warning');
@@ -2018,10 +2162,10 @@ const game = {
     this.log('💡 PRVNÍ KROKY: Craftuj nůž → přijde obyvatel → přiřaď mu práci.', 'success');
     this.log('💡 KLÍČ K PŘEŽITÍ: Sledujte zásoby kolonie! Období se mění každých 15 dní a jejich dopady jsou nemilosrdné.', 'danger');
     this.log('💡 TEPLOTA: V létě je vedro k omdlení. V mrazu spotřebujete víc jídla. Rozdělejte oheň, postavte krb, zatopte, nebo budete mrznout. Možná přežijete zimu a další bude lehčí?', 'danger');
-    this.log('🔥 OHEŇ: Luk → Bow Drill (80%) nebo Křesadlo (100%). Potřebný pro sušení masa!', 'success');
+    this.log('🔥 OHEŇ: Luk → Bow Drill (80%) nebo Křesadlo (100%). Potřebný pro sušení masa! PŠŠŠŠT "a dost!", ".. yes my master!"', 'success');
     this.log('💰 EKONOMIKA: Prodávej suroviny 🟡 za zlato → Kup jídlo/vodu 🏷️. Risk vs. reward!', 'success');
-    this.log('💾 SAVE: Klikni "💾 Uložit hru" kdykoliv. Při příštím načtení se zeptám, jestli chceš pokračovat!', 'success');
     
+    // Environment indicator
     if (!this.isAppsScript) {
       this.log('⚠️ Public message: Žebříček funguje. Plné funkce, enjoy:-)', 'warning');
     }
@@ -2052,6 +2196,7 @@ const game = {
     }, 3000);
   },
 
+  // 💰 ECONOMY: Sell Item
   sellItem(itemId, quantity = 1) {
     const item = this.items[itemId];
     if (!item) return;
@@ -2069,12 +2214,14 @@ const game = {
     
     const goldEarned = item.sellPrice * quantity;
     
+    // Update state
     this.removeItem(itemId, quantity);
     this.state.gold += goldEarned;
     
     this.log(`🟡 Prodal jsi ${item.icon} ${item.name} ×${quantity} za ${goldEarned}g`, 'success');
     this.showNotification(`🟡 +${goldEarned}g`);
     
+    // GA4 Tracking
     this.track('item_sold', {
       item_id: itemId,
       item_name: item.name,
@@ -2084,6 +2231,7 @@ const game = {
       day: this.state.day
     });
     
+    // Backend transaction logging (fire & forget)
     this.backend('logTransaction', {
       playerId: this.state.playerId,
       type: 'sell',
@@ -2100,6 +2248,7 @@ const game = {
     this.render();
   },
 
+  // 💰 ECONOMY: Buy Item
   buyItem(itemId, quantity = 1) {
     const item = this.items[itemId];
     if (!item) return;
@@ -2116,12 +2265,14 @@ const game = {
       return;
     }
     
+    // Update state
     this.state.gold -= goldNeeded;
     this.addItem(itemId, quantity);
     
     this.log(`🏷️ Koupil jsi ${item.icon} ${item.name} ×${quantity} za ${goldNeeded}g`, 'success');
     this.showNotification(`🏷️ -${goldNeeded}g`);
     
+    // GA4 Tracking
     this.track('item_bought', {
       item_id: itemId,
       item_name: item.name,
@@ -2131,6 +2282,7 @@ const game = {
       day: this.state.day
     });
     
+    // Backend transaction logging (fire & forget)
     this.backend('logTransaction', {
       playerId: this.state.playerId,
       type: 'buy',
@@ -2183,22 +2335,27 @@ const game = {
       return;
     }
 
+    // 🔥 Check fire requirement
     if (recipe.requiresFire && !this.state.fireActive) {
       this.log('❌ Potřebuješ hořící oheň', 'warning');
       return;
     }
 
+    // 🔥 FIRE STARTER RECIPES (special handling)
     if (recipe.isFireStarter) {
+      // Odečti materiály
       for (const [id, count] of Object.entries(recipe.materials)) {
         this.removeItem(id, count);
       }
 
+      // RNG roll
       if (Math.random() < recipe.fireChance) {
         this.state.fireActive = true;
-        this.state.fireFuel = 0;
+        this.state.fireFuel = 0; // Start with 0, need to add wood
         this.log(`🔥 Oheň vzplanul! (${recipe.fireMethod})`, 'success');
         this.showNotification('🔥 Oheň hoří!');
         
+        // GA tracking
         this.track('fire_started', {
           method: recipe.fireMethod,
           day: this.state.day,
@@ -2207,6 +2364,7 @@ const game = {
       } else {
         this.log('💨 Nepodařilo se... zkus znovu', 'warning');
         
+        // GA tracking failure
         this.track('fire_failed', {
           method: recipe.fireMethod,
           day: this.state.day
@@ -2217,16 +2375,20 @@ const game = {
       return;
     }
 
+    // NORMAL CRAFTING (not fire starter)
+    // Odečti materiály
     for (const [id, count] of Object.entries(recipe.materials)) {
       this.removeItem(id, count);
     }
 
+    // Přidej výsledek
     for (const [id, count] of Object.entries(recipe.result)) {
       this.addItem(id, count);
     }
 
     this.log(`✅ Vytvořil jsi ${recipe.icon} ${recipe.name}`, 'success');
 
+    // GA Tracking - Craft Item
     this.track('craft_item', {
       item_name: recipe.name,
       item_id: recipe.id,
@@ -2235,6 +2397,7 @@ const game = {
       season: this.seasons[this.state.season].name
     });
 
+    // Unlock mechaniky
     if (recipe.unlock === 'first_entity' && this.state.entities.length === 0) {
       this.spawnEntity('gatherer');
       this.log('👤 Do doupěte dorazil první obyvatel - Sběrač!', 'success');
@@ -2269,6 +2432,7 @@ const game = {
 
     this.state.entities.push(entity);
     
+    // GA Tracking - Entity Joined
     this.track('entity_joined', {
       entity_type: typeId,
       entity_name: type.name,
@@ -2288,18 +2452,18 @@ const game = {
       this.log('❌ Entita nemá potřebné nástroje', 'warning');
       return;
     }
-
+    // 🔥 Check fire requirement for fuel action
     if (action.requiresFire && !this.state.fireActive) {
       this.log('❌ Není založený oheň', 'warning');
       return;
     }
-
     entity.status = 'working';
     entity.action = action;
     entity.daysLeft = action.duration;
 
     this.log(`${entity.icon} ${entity.name} začal: ${action.name}`, 'info');
     
+    // GA Tracking - Entity Action
     this.track('entity_action', {
       entity_type: entity.type,
       action_name: action.name,
@@ -2316,13 +2480,15 @@ const game = {
         entity.daysLeft--;
 
         if (entity.daysLeft === 0) {
+          // 🔥 FUEL ACTION (special handling)
           if (entity.action.isFuelAction) {
             const woodAvailable = this.state.inventory.wood || 0;
             if (woodAvailable >= 3) {
               this.removeItem('wood', 3);
-              this.state.fireFuel += 2;
+              this.state.fireFuel += 3; // 3 wood = 2 days fuel
               this.log(`${entity.icon} ${entity.name} přiložil do ohně (+2 dny, -3 🪵)`, 'success');
               
+              // GA Tracking - Fuel Added
               this.track('fire_fueled', {
                 wood_used: 3,
                 fuel_added: 2,
@@ -2337,6 +2503,7 @@ const game = {
             return;
           }
 
+          // Speciální zpracování heating akce
           if (entity.action.isHeating) {
             const woodAvailable = this.state.inventory.wood || 0;
             if (woodAvailable >= 3) {
@@ -2344,6 +2511,7 @@ const game = {
               this.state.heating = Math.min(this.state.heating + 1, 3);
               this.log(`${entity.icon} ${entity.name} zatopil v krbu (+5°C po 1 den)`, 'success');
               
+              // GA Tracking - Heating
               this.track('heating_action', {
                 success: true,
                 heating_level: this.state.heating,
@@ -2353,6 +2521,7 @@ const game = {
             } else {
               this.log(`${entity.icon} ${entity.name} nemá dřevo na topení (potřeba 3)`, 'warning');
               
+              // GA Tracking - Heating Failed
               this.track('heating_action', {
                 success: false,
                 wood_available: woodAvailable,
@@ -2365,6 +2534,7 @@ const game = {
             return;
           }
           
+          // Akce dokončena - normální result
           const result = entity.action.result();
           
           let resultText = [];
@@ -2392,6 +2562,7 @@ const game = {
   triggerRandomEvent() {
     const currentSeason = this.seasons[this.state.season];
     
+    // Filtruj události podle sezóny
     const availableEvents = this.randomEvents.filter(event => {
       if (event.season && !event.season.includes(this.state.season)) {
         return false;
@@ -2399,8 +2570,10 @@ const game = {
       return true;
     });
 
+    // Náhodná šance na událost
     if (Math.random() > this.state.eventChance) return;
 
+    // Vyber událost podle vah
     const totalChance = availableEvents.reduce((sum, e) => sum + e.chance, 0);
     let roll = Math.random() * totalChance;
 
@@ -2427,6 +2600,7 @@ const game = {
 
     this.state.day++;
 
+    // Změna sezóny každých 15 dní
     const newSeason = Math.floor((this.state.day - 1) / 15) % 4;
     if (newSeason !== this.state.season) {
       this.state.season = newSeason;
@@ -2434,6 +2608,7 @@ const game = {
       this.log(`${season.icon} Nastává ${season.name}! ${season.desc}`, 'warning');
       this.showNotification(`${season.icon} ${season.name} začíná!`);
       
+      // GA Tracking - Season Change
       this.track('season_change', {
         new_season: season.name,
         day: this.state.day,
@@ -2443,6 +2618,7 @@ const game = {
       });
     }
 
+    // GA Tracking - Day Milestones
     if (this.state.day % 10 === 0) {
       this.track('milestone_reached', {
         days_survived: this.state.day,
@@ -2457,7 +2633,7 @@ const game = {
     const season = this.seasons[this.state.season];
 
     this.log(`--- Den ${this.state.day} ---`, 'info');
-
+    // 🔥 FIRE DECAY
     if (this.state.fireFuel > 0) {
       this.state.fireFuel--;
       if (this.state.fireFuel === 0) {
@@ -2465,6 +2641,7 @@ const game = {
         this.log('🌫️ Oheň vyhasl!', 'warning');
         this.showNotification('💨 Oheň vyhasl!');
         
+        // GA Tracking - Fire Extinguished
         this.track('fire_extinguished', {
           day: this.state.day,
           reason: 'no_fuel'
@@ -2473,13 +2650,15 @@ const game = {
         this.log(`🔥 Oheň hoří (zbývá ${this.state.fireFuel} dní)`, 'info');
       }
     }
-
+    // Výpočet teploty
     this.calculateTemperature();
     const tempEffects = this.getTemperatureEffects();
     const tempEmoji = this.getTemperatureEmoji(this.state.temperature);
     
+    // Temperature warning
     if (this.state.temperature < 5) {
       this.log(`${tempEmoji} Je mrazivě! (${this.state.temperature}°C) Spotřeba jídla +50%`, 'danger');
+      // GA Tracking - Extreme Cold
       this.track('extreme_temperature', {
         type: 'freezing',
         temperature: this.state.temperature,
@@ -2490,6 +2669,7 @@ const game = {
       this.log(`${tempEmoji} Je chladno (${this.state.temperature}°C) Spotřeba jídla +20%`, 'warning');
     } else if (this.state.temperature > 28) {
       this.log(`${tempEmoji} Je vedro! (${this.state.temperature}°C) Spotřeba vody +50%`, 'danger');
+      // GA Tracking - Extreme Heat
       this.track('extreme_temperature', {
         type: 'heatwave',
         temperature: this.state.temperature,
@@ -2503,6 +2683,7 @@ const game = {
       this.log(`${tempEmoji} Teplota: ${this.state.temperature}°C`, 'info');
     }
     
+    // Heating decay
     if (this.state.heating > 0) {
       this.state.heating--;
       if (this.state.heating === 0) {
@@ -2510,24 +2691,31 @@ const game = {
       }
     }
 
+    // Zpracuj entity
     this.processEntities();
 
+    // Garantované kameny prvních 5 dní (min 2, max 3)
     if (this.state.day <= 5) {
       const stonesGiven = this.state.guaranteedStones || 0;
       
       if (stonesGiven < 2) {
+        // Ještě nemáme 2 → zagarantovat 1 kámen
         this.addItem('stone', 1);
         this.log(`🪨 Našel jsi kámen! (+1)`, 'item');
         this.state.guaranteedStones = stonesGiven + 1;
       } else if (stonesGiven === 2 && Math.random() < 0.5) {
+        // Máme 2, šance 50% na 3.
         this.addItem('stone', 1);
         this.log(`🪨 Našel jsi kámen! (+1)`, 'item');
         this.state.guaranteedStones = 3;
       }
     }
 
+    // Náhodná událost
     this.triggerRandomEvent();
 
+    // Denní spotřeba podle sezóny + POPULATION SCALING + TEMPERATURE EFFECTS
+    // První entita je "free" (základní spotřeba), každá další +40%
     const effectivePopulation = Math.max(0, this.state.entities.length - 1);
     const populationMultiplier = 1 + (effectivePopulation * 0.4);
     
@@ -2537,10 +2725,12 @@ const game = {
     const foodAvailable = this.state.inventory.food || 0;
     const waterAvailable = this.state.inventory.water_supply || 0;
 
+    // Info o populaci
     if (this.state.entities.length > 0) {
       this.log(`👥 Kolonie: ${this.state.entities.length + 1} obyvatel (spotřeba: ×${populationMultiplier.toFixed(1)})`, 'info');
     }
 
+    // Spotřebuj jídlo
     if (foodAvailable >= hungerNeeded) {
       this.removeItem('food', hungerNeeded);
       this.log(`🍖 Spotřebováno ${hungerNeeded} jídla`, 'info');
@@ -2553,6 +2743,7 @@ const game = {
       return;
     }
 
+    // Spotřebuj vodu
     if (waterAvailable >= waterNeeded) {
       this.removeItem('water_supply', waterNeeded);
       this.log(`💧 Spotřebováno ${waterNeeded} vody`, 'info');
@@ -2571,8 +2762,10 @@ const game = {
   gameOver(reason = 'Nepřežil jsi') {
     this.state.dead = true;
     
+    // Zkontroluj jestli je to nový osobní rekord
     const isNewBestRun = this.state.day > this.state.bestRun;
     
+    // GA Tracking - Game Over (detailed)
     this.track('game_over', {
       death_reason: reason,
       days_survived: this.state.day,
@@ -2584,15 +2777,17 @@ const game = {
       had_fireplace: (this.state.inventory.fireplace || 0) > 0,
       had_insulation: (this.state.inventory.insulation || 0) > 0,
       shelter_level: this.state.shelterLevel,
-      fire_was_active: this.state.fireActive,
+      fire_was_active: this.state.fireActive, // 🔥
       is_new_best: isNewBestRun
     });
     
+    // Pokud je nový rekord, zobraz nickname modal místo běžného game over
     if (isNewBestRun) {
       this.showNicknameModal(reason);
       return;
     }
     
+    // Běžný game over screen
     const overlay = document.createElement('div');
     overlay.style.cssText = `
       position: fixed;
@@ -2665,6 +2860,7 @@ const game = {
   },
 
   showNicknameModal(reason) {
+    // Lock scroll
     this.openModal();
     
     const modal = document.createElement('div');
@@ -2700,10 +2896,12 @@ const game = {
     
     document.body.appendChild(modal);
     
+    // Focus na input
     setTimeout(() => {
       document.getElementById('nickname-input').focus();
     }, 100);
     
+    // Enter key = save
     document.getElementById('nickname-input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         this.saveHighScoreToSheet();
@@ -2715,12 +2913,15 @@ const game = {
     const nicknameInput = document.getElementById('nickname-input');
     const nickname = nicknameInput.value.trim() || 'Anonymous';
     
+    // Ulož nickname do localStorage
     this.state.playerNickname = nickname;
     localStorage.setItem('doupe_nickname', nickname);
     
+    // Ulož best run
     this.state.bestRun = this.state.day;
     localStorage.setItem('doupe_best_run', this.state.day.toString());
     
+    // Odešli do Google Sheets
     const data = {
       playerId: this.state.playerId,
       nickname: nickname,
@@ -2732,6 +2933,7 @@ const game = {
       waterLeft: this.state.inventory.water_supply || 0
     };
     
+    // Zobraz loading
     nicknameInput.disabled = true;
     nicknameInput.value = 'Ukládám...';
     
@@ -2742,6 +2944,7 @@ const game = {
           this.closeModal('nickname-modal');
           this.showGameOverScreen(`🏆 ${response.message}`);
         } else if (response.standalone) {
+          // Standalone mode - save locally only
           console.log('Standalone mode - saved locally');
           this.closeModal('nickname-modal');
           this.showGameOverScreen('💀 GAME OVER (Local save)');
@@ -2758,6 +2961,7 @@ const game = {
   },
 
   skipNickname() {
+    // Ulož best run bez odeslání do sheets
     this.state.bestRun = this.state.day;
     localStorage.setItem('doupe_best_run', this.state.day.toString());
     
@@ -2819,8 +3023,10 @@ const game = {
   },
 
   showLeaderboard() {
+    // Lock scroll
     this.openModal();
     
+    // Zobraz loading
     const loadingModal = document.createElement('div');
     loadingModal.className = 'modal-overlay';
     loadingModal.id = 'leaderboard-modal';
@@ -2832,11 +3038,13 @@ const game = {
     `;
     document.body.appendChild(loadingModal);
     
+    // Načti data z Sheets (přes API)
     this.backend('getLeaderboard')
       .then((response) => {
         if (response.success) {
           this.renderLeaderboard(response.data);
         } else {
+          // API failed - show error or standalone
           console.error('Leaderboard load failed:', response);
           alert('Chyba při načítání žebříčku: ' + (response.message || response.error));
           this.closeModal('leaderboard-modal');
@@ -2907,67 +3115,16 @@ const game = {
     return icons[seasonName] || '🌍';
   },
 
-  showResetConfirmation() {
-    this.openModal();
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.id = 'reset-confirmation-modal';
-    
-    modal.innerHTML = `
-      <div class="modal-content">
-        <div class="modal-title">⚠️ ZAČÍT ZNOVU?</div>
-        <p class="nickname-info" style="color: #e67e7b; font-weight: 600; margin: 20px 0;">
-          Všechen postup bude ztracen!
-        </p>
-        <div style="
-          background: rgba(230, 126, 123, 0.1); 
-          border: 1px solid rgba(230, 126, 123, 0.3);
-          border-radius: 10px;
-          padding: 15px;
-          margin: 20px 0;
-          text-align: left;
-        ">
-          <div style="color: #d4a574; margin-bottom: 8px;">📊 Tvůj postup:</div>
-          <div style="color: #b89968; font-size: 14px; line-height: 1.6;">
-            • <strong>Den ${this.state.day}</strong> (${this.seasons[this.state.season].name})<br>
-            • <strong>${this.state.entities.length + 1} obyvatel</strong><br>
-            • <strong>${this.state.inventory.food || 0} jídla</strong>, 
-              <strong>${this.state.inventory.water_supply || 0} vody</strong><br>
-            • <strong>${this.state.gold}g zlata</strong>
-          </div>
-        </div>
-        <p class="nickname-info" style="font-size: 12px; color: #9a8670;">
-          Tvůj nejlepší běh (${this.state.bestRun} dní) zůstane uložený.
-        </p>
-        <div class="modal-buttons">
-          <button class="modal-btn modal-btn-secondary" onclick="game.closeModal('reset-confirmation-modal')">
-            ❌ Zrušit
-          </button>
-          <button class="modal-btn modal-btn-primary" 
-                  style="background: linear-gradient(135deg, #c0504d, #e67e7b);" 
-                  onclick="game.confirmReset()">
-            🔄 Ano, začít znovu
-          </button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-  },
-
-  confirmReset() {
-    this.closeModal('reset-confirmation-modal');
-    this.reset();
-  },
-
   reset() {
+    // Odstraň game over overlay pokud existuje
     const overlay = document.querySelector('div[style*="position: fixed"]');
     if (overlay) overlay.remove();
     
+    // Odstraň modals
     const modal = document.getElementById('leaderboard-modal') || document.getElementById('nickname-modal');
     if (modal) modal.remove();
 
+    // GA Tracking - Game Reset
     const wasDead = this.state.dead;
     const finalDay = this.state.day;
     
@@ -2977,6 +3134,7 @@ const game = {
       reset_type: wasDead ? 'after_death' : 'manual_restart'
     });
     
+    // Zachovej player data
     const savedPlayerId = this.state.playerId;
     const savedNickname = this.state.playerNickname;
     const savedBestRun = this.state.bestRun;
@@ -3023,6 +3181,7 @@ const game = {
       const card = document.createElement('div');
       card.className = 'item-card';
       
+      // 💰 ECONOMY: Sell button (pro všechno kromě food/water)
       let actionButton = '';
       if (item.sellPrice && id !== 'food' && id !== 'water_supply') {
         actionButton = `
@@ -3032,6 +3191,7 @@ const game = {
         `;
       }
       
+      // 💰 ECONOMY: Buy button (jen pro food/water)
       if (item.buyPrice && (id === 'food' || id === 'water_supply')) {
         actionButton = `
           <button class="item-action-btn item-buy-btn" onclick="game.buyItem('${id}', 1)">
@@ -3058,6 +3218,7 @@ const game = {
     const el = document.getElementById('recipes');
     el.innerHTML = '';
 
+    // Zobraz jen odemčené recepty
     const availableRecipes = this.recipes.filter(r => 
       this.state.unlockedRecipes.includes(r.id)
     );
@@ -3164,19 +3325,23 @@ const game = {
     const season = this.seasons[this.state.season];
     document.getElementById('season').textContent = season.name;
 
+    // Population multiplier + temperature effects pro consumption
     const effectivePopulation = Math.max(0, this.state.entities.length - 1);
     const populationMultiplier = 1 + (effectivePopulation * 0.4);
     const tempEffects = this.getTemperatureEffects();
 
+    // Zobrazíme kolik máš vs. kolik potřebuješ na další den
     const hungerNeeded = Math.ceil(season.hungerDrain * populationMultiplier * tempEffects.hungerMultiplier);
     const waterNeeded = Math.ceil(season.waterDrain * populationMultiplier * tempEffects.waterMultiplier);
     
     const foodHave = this.state.inventory.food || 0;
     const waterHave = this.state.inventory.water_supply || 0;
     
+    // Vypočítej kolik dní ti to vydrží
     const foodDays = hungerNeeded > 0 ? Math.floor(foodHave / hungerNeeded) : 0;
     const waterDays = waterNeeded > 0 ? Math.floor(waterHave / waterNeeded) : 0;
     
+    // Bar ukazuje kolik dní ti to vydrží (max 20 dní = 100%)
     const hungerPercent = Math.min(100, (foodDays / 20) * 100);
     const waterPercent = Math.min(100, (waterDays / 20) * 100);
 
@@ -3186,10 +3351,12 @@ const game = {
     document.getElementById('water-fill').style.width = waterPercent + '%';
     document.getElementById('water-fill').textContent = `${waterHave} (${waterDays}d)`;
 
+    // Temperature bar
     const temp = this.state.temperature;
     const tempEmoji = this.getTemperatureEmoji(temp);
     document.getElementById('temp-emoji').textContent = tempEmoji;
     
+    // Temperature bar width: -10°C = 0%, +40°C = 100% (range 50°C)
     const tempPercent = Math.max(0, Math.min(100, ((temp + 10) / 50) * 100));
     document.getElementById('temp-fill').style.width = tempPercent + '%';
     
@@ -3206,9 +3373,15 @@ const game = {
     this.renderRecipes();
     this.renderEntities();
 
+    // Auto-unlock receptů podle inventáře
     this.autoUnlockRecipes();
+    // 🔥 Update fire indicator
     this.updateFireIndicator();
+    // 💰 Update gold display
     document.getElementById('gold-amount').textContent = this.state.gold;
+    
+    // 📊 Update footer stats
+    this.updateFooterStats();
   },
 
   autoUnlockRecipes() {
@@ -3217,15 +3390,18 @@ const game = {
     this.recipes.forEach(recipe => {
       if (this.state.unlockedRecipes.includes(recipe.id)) return;
       
+      // Zkontroluj jestli máš materiály na tento recept
       const hasSomeMaterials = Object.keys(recipe.materials).some(
         matId => (this.state.inventory[matId] || 0) > 0
       );
 
+      // Tier 1-2: unlock když máš materiály
       if (hasSomeMaterials && recipe.tier <= 2) {
         this.state.unlockedRecipes.push(recipe.id);
         unlocked = true;
       }
 
+      // Tier 3+: unlock když máš required tools
       if (recipe.tier >= 3 && recipe.requires) {
         if (this.hasTools(recipe.requires)) {
           this.state.unlockedRecipes.push(recipe.id);
@@ -3233,6 +3409,7 @@ const game = {
         }
       }
       
+      // Tier 3+ BEZ requires: unlock když máš materiály (luk, fireplace, insulation)
       if (recipe.tier >= 3 && !recipe.requires && hasSomeMaterials) {
         this.state.unlockedRecipes.push(recipe.id);
         unlocked = true;
@@ -3249,4 +3426,3 @@ window.onload = () => game.init();
 </script>
 </body>
 </html>
-

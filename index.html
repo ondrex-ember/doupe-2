@@ -1514,20 +1514,20 @@ async backend(functionName, data = null) {
 
   items: {
     // 💰 ECONOMY: sellPrice = co dostanu za prodej, buyPrice = co musím zaplatit
-    wood: { name: 'Dřevo', icon: '🪵', desc: 'Základní stavební materiál', sellPrice: 2 },
-    stone: { name: 'Kámen', icon: '🪨', desc: 'Tvrdý materiál pro nástroje', sellPrice: 3 },
+    wood: { name: 'Dřevo', icon: '🌳', desc: 'Základní stavební materiál', sellPrice: 2 },
+    stone: { name: 'Kámen', icon: '⛰️', desc: 'Tvrdý materiál pro nástroje', sellPrice: 3 },
     fiber: { name: 'Vlákna', icon: '🌾', desc: 'Pro výrobu provazů', sellPrice: 1 },
     mushroom: { name: 'Houba', icon: '🍄', desc: 'Jedlá nebo nejedlá', sellPrice: 4 },
-    bark: { name: 'Kůra', icon: '🪵', desc: 'Suchá kůra na zapálení', sellPrice: 2 },
+    bark: { name: 'Kůra', icon: '🟫', desc: 'Suchá kůra na zapálení', sellPrice: 2 },
     stick: { name: 'Hůl', icon: '🦯', desc: 'Užitečná tyč', sellPrice: 4 },
-    rope: { name: 'Provaz', icon: '🪢', desc: 'Pevné vlákno', sellPrice: 6 },
-    trap: { name: 'Past', icon: '🪤', desc: 'Chytá zvěř', sellPrice: 15 },
+    rope: { name: 'Provaz', icon: '➰', desc: 'Pevné vlákno', sellPrice: 6 },
+    trap: { name: 'Past', icon: '🐀', desc: 'Chytá zvěř', sellPrice: 15 },
     basket: { name: 'Koš', icon: '🧺', desc: 'Pro sběr bobulí', sellPrice: 12 },
     knife: { name: 'Nůž', icon: '🔪', desc: 'Základní nástroj pro řezání', sellPrice: 30 },
     axe: { name: 'Sekyrka', icon: '🪓', desc: 'Pro kácení dřeva', sellPrice: 45 },
     bowl: { name: 'Miska', icon: '🥣', desc: 'Nádoba na vodu', sellPrice: 8 },
     leather: { name: 'Kůže', icon: '🦺', desc: 'Zpracovaná kůže', sellPrice: 20 },
-    plank: { name: 'Prkno', icon: '🪚', desc: 'Opracované dřevo', sellPrice: 5 },
+    plank: { name: 'Prkno', icon: '📏', desc: 'Opracované dřevo', sellPrice: 5 },
     bow: { name: 'Luk', icon: '🏹', desc: 'Pro lov', sellPrice: 60 },
     seeds: { name: 'Semena', icon: '🌱', desc: 'Pro pěstování jídla', sellPrice: 3 },
     food: { name: 'Jídlo', icon: '🍖', desc: 'Udržuje život', buyPrice: 5 },
@@ -1551,7 +1551,7 @@ async backend(functionName, data = null) {
     {
       id: 'rope',
       name: 'Provaz',
-      icon: '🪢',
+      icon: '➰',
       materials: { fiber: 3 },
       result: { rope: 1 },
       tier: 1
@@ -1567,7 +1567,7 @@ async backend(functionName, data = null) {
     {
       id: 'trap',
       name: 'Past na zvěř',
-      icon: '🪤',
+      icon: '🐀',
       materials: { rope: 2, stick: 3 },
       result: { trap: 1 },
       tier: 1,
@@ -1620,7 +1620,7 @@ async backend(functionName, data = null) {
     {
       id: 'plank',
       name: 'Prkno',
-      icon: '🪚',
+      icon: '📏',
       materials: { wood: 2 },
       result: { plank: 1 },
       requires: { axe: 1 },
@@ -1654,7 +1654,7 @@ async backend(functionName, data = null) {
       tier: 3,
       desc: '100% úspěch',
       isFireStarter: true,
-      fireChance: 1.0,
+      fireChance: 0.8,
       fireMethod: 'flint_steel'
     },
     
@@ -1704,13 +1704,13 @@ async backend(functionName, data = null) {
       id: 'wood_fall',
       chance: 0.4,
       items: { wood: [2, 4] },
-      message: '🪵 Několik větví spadlo ze stropu'
+      message: '🌳 Několik větví spadlo ze stropu'
     },
     {
       id: 'stone_fall',
       chance: 0.3,
       items: { stone: [1, 3] },
-      message: '🪨 Kameny se uvolnily ze stěny'
+      message: '⛰️ Kameny se uvolnily ze stěny'
     },
     {
       id: 'fiber_find',
@@ -1722,7 +1722,7 @@ async backend(functionName, data = null) {
       id: 'bark_find', // 🔥 NEW EVENT
       chance: 0.35,
       items: { bark: [2, 6] },
-      message: '🪵 Kůra spadla ze stromu'
+      message: '🟫 Kůra spadla ze stromu'
     },
     {
       id: 'water_drip',
@@ -1732,7 +1732,7 @@ async backend(functionName, data = null) {
     },
     {
       id: 'mushroom_find',
-      chance: 0.25,
+      chance: 0.65,
       items: { food: [2, 4] },
       message: '🍄 Našel jsi jedlé houby'
     },
@@ -1757,17 +1757,17 @@ async backend(functionName, data = null) {
       icon: '👤',
       actions: [
         {
-          name: 'Sbírat materiály',
+          name: '🔪Sbírat materiály',
           duration: 1,
           requires: { knife: 1 },
           result: () => {
-            const items = ['wood', 'stone', 'fiber'];
+            const items = ['wood', 'stone', 'fiber', 'mushroom'];
             const item = items[Math.floor(Math.random() * items.length)];
             return { [item]: Math.floor(Math.random() * 3) + 8 };
           }
         },
         {
-          name: 'Sbírat bobule',
+          name: '🧺Sbírat bobule',
           duration: 1,
           requires: { basket: 1 },
           result: () => ({ 
@@ -1776,7 +1776,7 @@ async backend(functionName, data = null) {
           })
         },
         {
-          name: 'Nastražit past',
+          name: '🕸️Nastražit past',
           duration: 2,
           requires: { trap: 1 },
           result: () => ({ 
@@ -1784,13 +1784,14 @@ async backend(functionName, data = null) {
           })
         },
         {
-          name: 'Sbírat vodu',
+          name: '🥣Sbírat vodu',
           duration: 1,
           requires: { bowl: 1 },
           result: () => ({ water_supply: Math.floor(Math.random() * 5) + 10 })
         },
         {
-          name: 'Topit v krbu',
+          name: '🌳Topit v krbu',
+          icon: '🌳',
           duration: 1,
           requires: { fireplace: 1 },
           isHeating: true,
@@ -1798,7 +1799,7 @@ async backend(functionName, data = null) {
         },
         // 🔥 NEW ACTION - Přiložit do ohně
         {
-          name: 'Přiložit do ohně',
+          name: '🌳Přiložit do ohně',
           duration: 1,
           requiresFire: true,
           isFuelAction: true,
@@ -1988,7 +1989,7 @@ async backend(functionName, data = null) {
     this.log('💡 KLÍČ K PŘEŽITÍ: Sledujte zásoby kolonie! Období se mění každých 15 dní a jejich dopady jsou nemilosrdné.', 'danger');
     this.log('💡 TEPLOTA: V létě je vedro k omdlení. V mrazu spotřebujete víc jídla. Rozdělejte oheň, postavte krb, zatopte, nebo budete mrznout. Možná přežijete zimu a další bude lehčí?', 'danger');
     this.log('🔥 OHEŇ: Luk → Bow Drill (80%) nebo Křesadlo (100%). Potřebný pro sušení masa! PŠŠŠŠT "a dost!", ".. yes my master!"', 'success');
-    this.log('💰 EKONOMIKA: Prodávej suroviny 💰 za zlato → Kup jídlo/vodu 🏷️. Risk vs. reward!', 'success');
+    this.log('💰 EKONOMIKA: Prodávej suroviny 🟡 za zlato → Kup jídlo/vodu 🏷️. Risk vs. reward!', 'success');
     
     // Environment indicator
     if (!this.isAppsScript) {
@@ -2043,8 +2044,8 @@ async backend(functionName, data = null) {
     this.removeItem(itemId, quantity);
     this.state.gold += goldEarned;
     
-    this.log(`💰 Prodal jsi ${item.icon} ${item.name} ×${quantity} za ${goldEarned}g`, 'success');
-    this.showNotification(`💰 +${goldEarned}g`);
+    this.log(`🟡 Prodal jsi ${item.icon} ${item.name} ×${quantity} za ${goldEarned}g`, 'success');
+    this.showNotification(`🟡 +${goldEarned}g`);
     
     // GA4 Tracking
     this.track('item_sold', {
@@ -2310,7 +2311,7 @@ async backend(functionName, data = null) {
             const woodAvailable = this.state.inventory.wood || 0;
             if (woodAvailable >= 3) {
               this.removeItem('wood', 3);
-              this.state.fireFuel += 2; // 3 wood = 2 days fuel
+              this.state.fireFuel += 3; // 3 wood = 2 days fuel
               this.log(`${entity.icon} ${entity.name} přiložil do ohně (+2 dny, -3 🪵)`, 'success');
               
               // GA Tracking - Fuel Added
@@ -3011,7 +3012,7 @@ async backend(functionName, data = null) {
       if (item.sellPrice && id !== 'food' && id !== 'water_supply') {
         actionButton = `
           <button class="item-action-btn item-sell-btn" onclick="game.sellItem('${id}', 1)">
-            💰 ${item.sellPrice}g
+            🟡 ${item.sellPrice}g
           </button>
         `;
       }
@@ -3248,11 +3249,3 @@ window.onload = () => game.init();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-

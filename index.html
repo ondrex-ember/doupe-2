@@ -1360,6 +1360,12 @@ const game = {
 // Najdi v index.html funkci backend() (cca řádek 1360)
 // a NAHRAĎ JI tímto:
 
+// ═══════════════════════════════════════════════════════════════
+// 🔧 UPDATED BACKEND FUNCTION - JSONP pro CORS fix
+// ═══════════════════════════════════════════════════════════════
+
+// V index.html najdi funkci backend() a NAHRAĎ JI celou tímto:
+
 async backend(functionName, data = null) {
   // Apps Script environment - use google.script.run (direct)
   if (this.isAppsScript) {
@@ -1380,50 +1386,62 @@ async backend(functionName, data = null) {
     });
   }
   
-  // GitHub environment - USE GET WITH QUERY PARAMS (CORS workaround)
-  try {
-    console.log(`🌐 API call: ${functionName}`);
-    
-    // Encode data as query param
-    const params = new URLSearchParams({
-      action: functionName,
-      data: JSON.stringify(data || {})
-    });
-    
-    const response = await fetch(`${this.BACKEND_API_URL}?${params}`, {
-      method: 'GET',  // ← ZMĚNĚNO z POST na GET!
-      mode: 'cors',
-      cache: 'no-cache'
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  // GitHub environment - USE JSONP (CORS workaround)
+  return new Promise((resolve, reject) => {
+    try {
+      console.log(`🌐 API call: ${functionName}`);
+      
+      // Generate unique callback name
+      const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      
+      // Create global callback function
+      window[callbackName] = function(response) {
+        console.log(`✅ API response:`, response);
+        
+        // Cleanup
+        delete window[callbackName];
+        document.body.removeChild(script);
+        
+        // Resolve promise
+        resolve(response);
+      };
+      
+      // Build URL with params
+      const params = new URLSearchParams({
+        action: functionName,
+        data: JSON.stringify(data || {}),
+        callback: callbackName
+      });
+      
+      // Create script tag for JSONP
+      const script = document.createElement('script');
+      script.src = `${this.BACKEND_API_URL}?${params}`;
+      script.onerror = function() {
+        console.error(`❌ API call failed: ${functionName}`);
+        
+        // Cleanup
+        delete window[callbackName];
+        document.body.removeChild(script);
+        
+        // Return mock success for non-critical functions
+        if (functionName === 'trackEvent') {
+          resolve({ success: true, message: 'Tracking skipped (API unavailable)' });
+        } else if (functionName === 'logTransaction') {
+          resolve({ success: true, message: 'Transaction logging skipped (API unavailable)' });
+        } else {
+          reject(new Error('API call failed'));
+        }
+      };
+      
+      // Add script to page
+      document.body.appendChild(script);
+      
+    } catch(error) {
+      console.error(`❌ API call failed:`, error);
+      reject(error);
     }
-    
-    const result = await response.json();
-    console.log(`✅ API response:`, result);
-    return result;
-    
-  } catch(error) {
-    console.error(`❌ API call failed:`, error);
-    
-    // Return mock success for non-critical functions
-    if (functionName === 'trackEvent') {
-      return { success: true, message: 'Tracking skipped (API unavailable)' };
-    }
-    
-    if (functionName === 'logTransaction') {
-      return { success: true, message: 'Transaction logging skipped (API unavailable)' };
-    }
-    
-    return { 
-      success: false, 
-      message: `API call failed: ${error.message}`,
-      error: error.toString()
-    };
-  }
+  });
 },
-
   state: {
     day: 1,
     season: 0,
@@ -3221,5 +3239,6 @@ window.onload = () => game.init();
 </script>
 </body>
 </html>
+
 
 

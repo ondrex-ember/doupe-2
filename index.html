@@ -1316,7 +1316,7 @@ button:active {
   <div class="controls">
     <button class="primary" onclick="game.nextDay()">⏰ Další den</button>
     <button class="primary" onclick="game.showLeaderboard()">🏆 Žebříček</button>
-    <button class="danger" onclick="game.reset()">🔄 Nový začátek</button>
+    <button class="danger" onclick="game.showResetConfirmation()">🔄 Nový začátek</button>
   </div>
 
 </div>
@@ -2941,6 +2941,57 @@ async backend(functionName, data = null) {
     return icons[seasonName] || '🌍';
   },
 
+  // 🔄 RESET CONFIRMATION MODAL
+  showResetConfirmation() {
+    this.openModal(); // Lock scroll
+  
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'reset-confirmation-modal';
+  
+    modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-title">⚠️ ZAČÍT ZNOVU?</div>
+      <p class="nickname-info" style="color: #e67e7b; font-weight: 600; margin: 20px 0;">
+        Všechen postup bude ztracen!
+      </p>
+      <div style="
+        background: rgba(230, 126, 123, 0.1); 
+        border: 1px solid rgba(230, 126, 123, 0.3);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 20px 0;
+        text-align: left;
+      ">
+        <div style="color: #d4a574; margin-bottom: 8px;">📊 Tvůj postup:</div>
+        <div style="color: #b89968; font-size: 14px; line-height: 1.6;">
+          • <strong>Den ${this.state.day}</strong> (${this.seasons[this.state.season].name})<br>
+          • <strong>${this.state.entities.length + 1} obyvatel</strong><br>
+          • <strong>${this.state.inventory.food || 0} jídla</strong>, 
+            <strong>${this.state.inventory.water_supply || 0} vody</strong><br>
+          • <strong>${this.state.gold}g zlata</strong>
+        </div>
+      </div>
+      <p class="nickname-info" style="font-size: 12px; color: #9a8670;">
+        Tvůj nejlepší běh (${this.state.bestRun} dní) zůstane uložený.
+      </p>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-secondary" onclick="game.closeModal('reset-confirmation-modal')">
+          ❌ Zrušit
+        </button>
+        <button class="modal-btn modal-btn-primary" style="background: linear-gradient(135deg, #c0504d, #e67e7b);" onclick="game.confirmReset()">
+          🔄 Ano, začít znovu
+        </button>
+      </div>
+    </div>
+  `;
+    document.body.appendChild(modal);
+  },
+
+confirmReset() {
+  this.closeModal('reset-confirmation-modal');
+  this.reset(); // Zavolej původní reset
+},
   reset() {
     // Odstraň game over overlay pokud existuje
     const overlay = document.querySelector('div[style*="position: fixed"]');
@@ -3249,3 +3300,11 @@ window.onload = () => game.init();
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+

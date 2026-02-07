@@ -1979,20 +1979,20 @@ async backend(functionName, data = null) {
     });
     
     // Atmosférický úvod
-    this.log('🌲 Probouzíš se v tichém doupěti, kdesi hluboko v temných lesích...', 'info');
-    this.log('Vzduch je těžký. Kolonie na pokraji zániku. Hlad, žízeň, mráz - tvoji věční nepřátelé.', 'warning');
-    this.log('Léta sucha vysušila prameny. Zimy jsou kruté, jídlo vzácné. Přežití není zaručeno.', 'warning');
+    this.log('🌲 Probouzíš se v tichém doupěti, kdesi hluboko v temných lesích... Víš, že kolem to vře, ale tobě je přájemně chladno.', 'info');
+    this.log('Vzduch je ale těžký. Kolonie strádá a nachází se na pokraji zániku. Hlad, žízeň, mráz - tvoji věční nepřátelé.', 'warning');
+    this.log('Léta sucha vysušila prameny. Zimy jsou kruté, jídlo vzácné. Přežití není zaručeno. Spíše vyvráceno. Máš na to?', 'warning');
     this.log('', 'info');
     this.log('💡 JAK ZAČÍT: Vytvořte si nástroje (hůl, provaz, misku). Postavte past na zvěř.', 'success');
     this.log('💡 PRVNÍ KROKY: Craftujte nůž → přijde obyvatel → přiřaďte mu práci.', 'success');
-    this.log('💡 KLÍČ K PŘEŽITÍ: Sledujte zásoby! Zima přichází každých 15 dní a je nemilosrdná.', 'danger');
-    this.log('💡 TEPLOTA: V mrazu spotřebujete víc jídla. Postavte krb, zatopte, nebo budete mrznou.', 'danger');
-    this.log('🔥 OHEŇ: Luk → Bow Drill (80%) nebo Křesadlo (100%). Potřebný pro sušení masa!', 'success');
+    this.log('💡 KLÍČ K PŘEŽITÍ: Sledujte zásoby! Období se mění každých 15 dní a jejich dopady jsou nemilosrdné.', 'danger');
+    this.log('💡 TEPLOTA: V mrazu spotřebujete víc jídla. Rozdělejte oheň, postavte krb, zatopte, nebo budete mrznout. Možná přežijete zimu a další bude lehčí?', 'danger');
+    this.log('🔥 OHEŇ: Luk → Bow Drill (80%) nebo Křesadlo (100%). Potřebný pro sušení masa! PŠŠŠŠT a dost! .. yes my maste!', 'success');
     this.log('💰 EKONOMIKA: Prodávej suroviny 💰 za zlato → Kup jídlo/vodu 🏷️. Risk vs. reward!', 'success');
     
     // Environment indicator
     if (!this.isAppsScript) {
-      this.log('⚠️ Standalone mód: Žebříček pouze lokální. Pro plné funkce použij Apps Script.', 'warning');
+      this.log('⚠️ Public message: Žebříček funguje. Plné funkce :-)', 'warning');
     }
     
     this.log('', 'info');
@@ -3248,6 +3248,7 @@ window.onload = () => game.init();
 </script>
 </body>
 </html>
+
 
 
 

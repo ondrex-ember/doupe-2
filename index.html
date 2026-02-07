@@ -1353,72 +1353,76 @@ const game = {
            google.script.run;
   },
 
-  async backend(functionName, data = null) {
-    // Apps Script environment - use google.script.run (direct)
-    if (this.isAppsScript) {
-      return new Promise((resolve, reject) => {
-        try {
-          const runner = google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(reject);
-          
-          // Call the function with or without data
-          if (data !== null) {
-            runner[functionName](data);
-          } else {
-            runner[functionName]();
-          }
-        } catch(error) {
-          reject(error);
+  // ═══════════════════════════════════════════════════════════════
+// 🔧 UPDATED BACKEND FUNCTION - Použij GET místo POST (CORS fix)
+// ═══════════════════════════════════════════════════════════════
+
+// Najdi v index.html funkci backend() (cca řádek 1360)
+// a NAHRAĎ JI tímto:
+
+async backend(functionName, data = null) {
+  // Apps Script environment - use google.script.run (direct)
+  if (this.isAppsScript) {
+    return new Promise((resolve, reject) => {
+      try {
+        const runner = google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject);
+        
+        if (data !== null) {
+          runner[functionName](data);
+        } else {
+          runner[functionName]();
         }
-      });
+      } catch(error) {
+        reject(error);
+      }
+    });
+  }
+  
+  // GitHub environment - USE GET WITH QUERY PARAMS (CORS workaround)
+  try {
+    console.log(`🌐 API call: ${functionName}`);
+    
+    // Encode data as query param
+    const params = new URLSearchParams({
+      action: functionName,
+      data: JSON.stringify(data || {})
+    });
+    
+    const response = await fetch(`${this.BACKEND_API_URL}?${params}`, {
+      method: 'GET',  // ← ZMĚNĚNO z POST na GET!
+      mode: 'cors',
+      cache: 'no-cache'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
-    // GitHub Pages / External environment - call API via fetch
-    try {
-      console.log(`🌐 API call: ${functionName}`);
-      
-      const response = await fetch(this.BACKEND_API_URL, {
-        method: 'POST',
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: functionName,
-          data: data
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      console.log(`✅ API response:`, result);
-      return result;
-      
-    } catch(error) {
-      console.error(`❌ API call failed:`, error);
-      
-      // Return mock success for non-critical functions
-      if (functionName === 'trackEvent') {
-        return { success: true, message: 'Tracking skipped (API unavailable)' };
-      }
-      
-      if (functionName === 'logTransaction') {
-        return { success: true, message: 'Transaction logging skipped (API unavailable)' };
-      }
-      
-      // For critical functions, return failure
-      return { 
-        success: false, 
-        message: `API call failed: ${error.message}`,
-        error: error.toString()
-      };
+    const result = await response.json();
+    console.log(`✅ API response:`, result);
+    return result;
+    
+  } catch(error) {
+    console.error(`❌ API call failed:`, error);
+    
+    // Return mock success for non-critical functions
+    if (functionName === 'trackEvent') {
+      return { success: true, message: 'Tracking skipped (API unavailable)' };
     }
-  },
+    
+    if (functionName === 'logTransaction') {
+      return { success: true, message: 'Transaction logging skipped (API unavailable)' };
+    }
+    
+    return { 
+      success: false, 
+      message: `API call failed: ${error.message}`,
+      error: error.toString()
+    };
+  }
+},
 
   state: {
     day: 1,
@@ -3217,4 +3221,5 @@ window.onload = () => game.init();
 </script>
 </body>
 </html>
+
 

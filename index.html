@@ -1508,7 +1508,7 @@ button:active {
   <div id="footer">
     <div>
       <span class="footer-title">🏠 DOUPĚ v2.0</span>
-      <span class="footer-version"> • by Ondrex's <span class="ember-icon-small">🔥</span></span>
+      <span class="footer-version"> • by Ondrex's <a href="https://www.ember-pa.cz">Ember</a><span class="ember-icon-small">🔥</span></span>
       <br>
       <!-- 🌤️ WEATHER WIDGET -->
       <span class="weather-widget" id="weather-widget">
@@ -3067,12 +3067,12 @@ async backend(functionName, data = null) {
       if (stonesGiven < 2) {
         // Ještě nemáme 2 → zagarantovat 1 kámen
         this.addItem('stone', 1);
-        this.log(`🪨 Našel jsi kámen! (+1)`, 'item');
+        this.log(`⛰️ Našel jsi kámen! (+1)`, 'item');
         this.state.guaranteedStones = stonesGiven + 1;
       } else if (stonesGiven === 2 && Math.random() < 0.5) {
         // Máme 2, šance 50% na 3.
         this.addItem('stone', 1);
-        this.log(`🪨 Našel jsi kámen! (+1)`, 'item');
+        this.log(`⛰️ Našel jsi kámen! (+1)`, 'item');
         this.state.guaranteedStones = 3;
       }
     }
@@ -4106,5 +4106,6 @@ window.onload = () => game.init();
 </script>
 </body>
 </html>
+
 
 

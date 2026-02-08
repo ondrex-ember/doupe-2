@@ -672,7 +672,17 @@ body::before {
 
 @media (max-width: 768px) {
   #recipes {
-    grid-template-columns: 1fr;
+    /* 🎨 MOBILE: 3 dlaždice vedle sebe místo 1 sloupce */
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px; /* Menší mezery na mobilu */
+  }
+}
+
+/* 📱 EXTRA SMALL: Pro velmi malé displeje (iPhone SE, atd.) */
+@media (max-width: 375px) {
+  #recipes {
+    grid-template-columns: repeat(2, 1fr); /* 2 sloupce na mini displejích */
+    gap: 6px;
   }
 }
 
@@ -846,20 +856,23 @@ body::before {
 
 @media (max-width: 768px) {
   .recipe-card {
-    padding: 10px;
-    min-height: 80px;
+    padding: 8px 6px; /* Kompaktnější padding */
+    min-height: 90px; /* Zachovat min výšku */
+    font-size: 11px; /* Menší text */
   }
   
   .recipe-icon {
-    font-size: 20px !important;
+    font-size: 24px !important; /* Větší ikona pro lepší čitelnost */
   }
   
   .recipe-name {
-    font-size: 13px !important;
+    font-size: 11px !important; /* Menší název */
+    line-height: 1.2;
   }
   
   .recipe-materials {
-    font-size: 10px !important;
+    font-size: 9px !important; /* Menší materiály */
+    line-height: 1.3;
   }
 }
 
@@ -1337,6 +1350,11 @@ button:active {
 <body>
 <div id="game-container">
 
+  <!-- ═══════════════════════════════════════════════════════════════
+       ⚠️ CRITICAL SECTION - HEADER
+       Hlavička s názvem, sezónou, fire indicator a gold display
+       Required: day, season, fire-indicator, gold-display
+       ═══════════════════════════════════════════════════════════════ -->
   <div id="header">
     <h2>🏠 DOUPĚ</h2>
     <h3>...by Ondrex's Ember🔥</h3>
@@ -1356,6 +1374,11 @@ button:active {
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════════════
+       ⚠️ CRITICAL SECTION - STATUS BARS
+       Zásoby jídla, vody a teplota - CORE gameplay mechanic
+       Required: hunger-fill, water-fill, temp-fill
+       ═══════════════════════════════════════════════════════════════ -->
   <div id="status-bars">
     <div class="bar">
       <div class="bar-label">🍖 Zásoby jídla</div>
@@ -1405,14 +1428,22 @@ button:active {
     <div class="section-content" id="entities"></div>
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════════════
+       ⚠️ CRITICAL SECTION - MAIN CONTROLS
+       Hlavní herní tlačítka - NESMÍ ZMIZET!
+       Required: nextDay, saveGame, showLeaderboard, reset
+       ═══════════════════════════════════════════════════════════════ -->
   <div class="controls">
     <button class="primary" onclick="game.nextDay()">⏰ Další den</button>
+    <button class="primary" onclick="game.saveGame()">💾 Uložit hru</button>
     <button class="primary" onclick="game.showLeaderboard()">🏆 Žebříček</button>
     <button class="danger" onclick="game.reset()">🔄 Nový začátek</button>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       FOOTER / PATIČKA
+       ⚠️ CRITICAL SECTION - FOOTER
+       Patička s live statistikami a důležitými odkazy
+       Required: footer-stats, loadGame, showLeaderboard, showAbout
        ═══════════════════════════════════════════════════════════════ -->
   <div id="footer">
     <div>
@@ -1422,6 +1453,8 @@ button:active {
     <div class="footer-info">
       <span id="footer-stats">Kolonie: 1 👥 | Rekord: <span id="footer-best-run">0</span>d</span>
       <br>
+      <span class="footer-link" onclick="game.loadGame()">📂 Načíst</span>
+      <span style="opacity: 0.5;"> • </span>
       <span class="footer-link" onclick="game.showLeaderboard()">📊 Žebříček</span>
       <span style="opacity: 0.5;"> • </span>
       <span class="footer-link" onclick="game.showAbout()">ℹ️ O hře</span>
@@ -1433,7 +1466,25 @@ button:active {
 <script>
 const game = {
 
-  // 🔧 Modal Management Helpers
+  // ═══════════════════════════════════════════════════════════════
+  // ⚠️ CRITICAL FUNCTION - MODAL MANAGEMENT
+  // Všechny modal funkce MUSÍ volat openModal() a closeModal()!
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * 🔒 OPEN MODAL
+   * 
+   * Zamkne body scroll a uloží pozici scrollu.
+   * ⚠️ MUSÍ být voláno před zobrazením každého modalu!
+   * 
+   * @returns {void}
+   * @sideeffects Adds 'modal-open' class, locks scroll, stores scroll position
+   * 
+   * @example
+   * game.openModal(); // Vždy první řádek v show*Modal() funkci
+   * 
+   * @see closeModal() - Pro odemknutí scrollu
+   */
   openModal() {
     // Lock body scroll when modal opens
     document.body.classList.add('modal-open');
@@ -1442,6 +1493,21 @@ const game = {
     document.body.style.top = `-${this._scrollY}px`;
   },
 
+  /**
+   * 🔓 CLOSE MODAL
+   * 
+   * Odstraní modal z DOM a odemkne body scroll.
+   * ⚠️ MUSÍ být voláno při zavírání každého modalu!
+   * 
+   * @param {string} modalId - ID modalu k odstranění (bez #)
+   * @returns {void}
+   * @sideeffects Removes modal, unlocks scroll, restores scroll position
+   * 
+   * @example
+   * game.closeModal('leaderboard-modal');
+   * 
+   * @see openModal() - Pro zamknutí scrollu
+   */
   closeModal(modalId) {
     // Remove modal
     const modal = document.getElementById(modalId);
@@ -2105,6 +2171,29 @@ async backend(functionName, data = null) {
     document.body.appendChild(modal);
   },
   
+  // ═══════════════════════════════════════════════════════════════
+  // ⚠️ CRITICAL FUNCTION - GAME INITIALIZATION
+  // ═══════════════════════════════════════════════════════════════
+  
+  /**
+   * 🎮 INIT GAME
+   * 
+   * Inicializuje hru - nastaví player ID, načte best run, vytvoří počáteční state,
+   * detekuje environment (Apps Script vs standalone), spustí GA4 tracking,
+   * zobrazí úvodní log messages.
+   * 
+   * ⚠️ MUSÍ být voláno při načtení stránky!
+   * 
+   * @returns {void}
+   * @fires game.render() - Initial render
+   * @fires game.track() - GA4 tracking events
+   * @sideeffects Creates player ID, loads localStorage data, logs to game log
+   * 
+   * @example
+   * window.onload = () => game.init(); // Volá se automaticky
+   * 
+   * @tested ✅ 2026-02-08 - Works in both modes
+   */
   init() {
     // Player ID systém
     let playerId = localStorage.getItem('doupe_player_id');
@@ -2173,6 +2262,55 @@ async backend(functionName, data = null) {
     this.log('', 'info');
     
     this.render();
+    
+    // 📂 AUTO-LOAD: Nabídni načtení uložené hry
+    this.checkAutoLoad();
+  },
+
+  /**
+   * 📂 CHECK AUTO-LOAD
+   * 
+   * Zkontroluje jestli existuje uložená hra a pokud ano,
+   * automaticky zobrazí modal pro načtení při startu.
+   * 
+   * @returns {void}
+   * @sideeffects May call loadGame() to show modal
+   * 
+   * @tested ✅ 2026-02-08
+   */
+  checkAutoLoad() {
+    // Počkej až se UI vykreslí
+    setTimeout(() => {
+      // Zkontroluj jestli existuje save
+      let hasSave = false;
+      let saveData = null;
+      
+      if (this.isAppsScript) {
+        // V Apps Script režimu zkontroluj backend
+        // (zatím necháme na manuálním načtení, protože async)
+        console.log('🌐 Apps Script mode - auto-load skipped (use manual load)');
+        return;
+      } else {
+        // Standalone - zkontroluj localStorage
+        const saved = localStorage.getItem('doupe_save');
+        if (saved) {
+          try {
+            saveData = JSON.parse(saved);
+            hasSave = true;
+          } catch(e) {
+            console.error('Invalid save data:', e);
+          }
+        }
+      }
+      
+      // Pokud existuje save a není to den 1, nabídni načtení
+      if (hasSave && saveData && saveData.day > 1) {
+        console.log('📂 Auto-load: Found save on day', saveData.day);
+        this.loadGame();
+      } else {
+        console.log('📂 Auto-load: No valid save found or day 1');
+      }
+    }, 500); // Počkej 500ms aby se UI stihlo vyrenderovat
   },
 
   log(text, type = 'info') {
@@ -3115,6 +3253,293 @@ async backend(functionName, data = null) {
     return icons[seasonName] || '🌍';
   },
 
+  // 💾 SAVE & LOAD GAME
+  saveGame() {
+    try {
+      const saveData = JSON.stringify(this.state);
+      
+      // Save via backend (Apps Script) or localStorage (standalone)
+      if (this.isAppsScript) {
+        this.backend('saveGameState', saveData)
+          .then((response) => {
+            if (response.success) {
+              this.log('💾 ' + response.message, 'success');
+              this.showNotification('💾 Hra uložena!');
+            } else {
+              throw new Error(response.message);
+            }
+          })
+          .catch((error) => {
+            this.log('❌ Chyba při ukládání: ' + error, 'danger');
+          });
+      } else {
+        // Standalone - localStorage
+        localStorage.setItem('doupe_save', saveData);
+        this.log('💾 Hra uložena (lokálně)', 'success');
+        this.showNotification('💾 Hra uložena!');
+      }
+      
+      // GA Tracking
+      this.track('game_saved', {
+        day: this.state.day,
+        season: this.seasons[this.state.season].name,
+        population: this.state.entities.length + 1
+      });
+      
+    } catch(e) {
+      this.log('❌ Nepodařilo se uložit hru', 'danger');
+      console.error('Save error:', e);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ⚠️ CRITICAL FUNCTION - SAVE/LOAD SYSTEM
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * 💾 SAVE GAME
+   * 
+   * Ukládá aktuální stav hry (this.state) do backend nebo localStorage.
+   * Funguje v Apps Script režimu (backend API) i standalone (localStorage).
+   * Zobrazuje notification a loguje úspěch/chybu.
+   * 
+   * @returns {void}
+   * @fires game.backend - V Apps Script režimu
+   * @fires game.track - GA4 tracking event 'game_saved'
+   * @sideeffects Ukládá do localStorage nebo volá backend API
+   * 
+   * @example
+   * game.saveGame(); // Uloží současný stav
+   * 
+   * @tested ✅ 2026-02-08 - Works in both modes
+   */
+  saveGame() {
+    try {
+      const saveData = JSON.stringify(this.state);
+      
+      // Save via backend (Apps Script) or localStorage (standalone)
+      if (this.isAppsScript) {
+        this.backend('saveGameState', saveData)
+          .then((response) => {
+            if (response.success) {
+              this.log('💾 ' + response.message, 'success');
+              this.showNotification('💾 Hra uložena!');
+            } else {
+              throw new Error(response.message);
+            }
+          })
+          .catch((error) => {
+            this.log('❌ Chyba při ukládání: ' + error, 'danger');
+          });
+      } else {
+        // Standalone - localStorage
+        localStorage.setItem('doupe_save', saveData);
+        this.log('💾 Hra uložena (lokálně)', 'success');
+        this.showNotification('💾 Hra uložena!');
+      }
+      
+      // GA Tracking
+      this.track('game_saved', {
+        day: this.state.day,
+        season: this.seasons[this.state.season].name,
+        population: this.state.entities.length + 1
+      });
+      
+    } catch(e) {
+      this.log('❌ Nepodařilo se uložit hru', 'danger');
+      console.error('Save error:', e);
+    }
+  },
+
+  /**
+   * 📂 LOAD GAME
+   * 
+   * Načte uloženou hru a zobrazí modal s preview (den, sezóna, zásoby).
+   * ⚠️ MUSÍ zobrazit modal - ne přímo načíst!
+   * User může potvrdit nebo zrušit načtení.
+   * 
+   * @returns {void}
+   * @fires game.openModal - Locks body scroll
+   * @fires game.showLoadConfirmModal - Displays preview modal
+   * @fires game.backend - In Apps Script mode
+   * @sideeffects Adds modal to DOM, locks scroll
+   * 
+   * @example
+   * game.loadGame(); // Zobrazí modal s preview
+   * 
+   * @see confirmLoad() - Actual load happens here after confirmation
+   * @tested ✅ 2026-02-08 - Modal displays correctly
+   */
+  loadGame() {
+    console.log('🔄 loadGame() called');
+    
+    // Lock scroll
+    this.openModal();
+    console.log('✅ Modal locked');
+    
+    // Show loading modal first
+    const loadingModal = document.createElement('div');
+    loadingModal.className = 'modal-overlay';
+    loadingModal.id = 'load-modal';
+    loadingModal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-title">📂 NAČÍST HRU</div>
+        <p class="nickname-info">Načítám uloženou hru...</p>
+      </div>
+    `;
+    document.body.appendChild(loadingModal);
+    console.log('✅ Loading modal added to DOM');
+    
+    // Load save data
+    const loadSaveData = () => {
+      if (this.isAppsScript) {
+        console.log('🌐 Apps Script mode - calling backend');
+        return this.backend('loadGameState');
+      } else {
+        console.log('💾 Standalone mode - checking localStorage');
+        // Standalone - localStorage
+        const saved = localStorage.getItem('doupe_save');
+        if (saved) {
+          console.log('✅ Save found in localStorage');
+          return Promise.resolve({ success: true, data: saved });
+        } else {
+          console.log('❌ No save in localStorage');
+          return Promise.resolve({ success: false, message: 'Žádná uložená hra' });
+        }
+      }
+    };
+    
+    loadSaveData()
+      .then((response) => {
+        console.log('📦 Response:', response);
+        if (response.success && response.data) {
+          const saveState = JSON.parse(response.data);
+          console.log('✅ Save state parsed:', saveState);
+          this.showLoadConfirmModal(saveState);
+        } else {
+          // No save found
+          console.log('❌ No save found - closing modal');
+          this.closeModal('load-modal');
+          this.log('❌ Žádná uložená hra nenalezena', 'warning');
+          this.showNotification('❌ Žádná uložená hra');
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Error loading save:', error);
+        this.closeModal('load-modal');
+        this.log('❌ Chyba při načítání: ' + error, 'danger');
+        alert('Chyba při načítání: ' + error.message);
+      });
+  },
+
+  // 📂 SHOW LOAD CONFIRM MODAL - zobrazí preview save a potvrzení
+  showLoadConfirmModal(saveState) {
+    const modal = document.getElementById('load-modal');
+    
+    if (!modal) {
+      console.error('Load modal not found!');
+      return;
+    }
+    
+    // Bezpečné načtení sezóny
+    const seasonIndex = saveState.season || 0;
+    const season = this.seasons[seasonIndex] || this.seasons[0];
+    const population = (saveState.entities?.length || 0) + 1;
+    
+    // Bezpečný výpočet dní (pokud drain je 0, nastav "∞")
+    const hungerDrain = season.hungerDrain || 1;
+    const waterDrain = season.waterDrain || 1;
+    const foodDays = Math.floor((saveState.inventory?.food || 0) / hungerDrain);
+    const waterDays = Math.floor((saveState.inventory?.water_supply || 0) / waterDrain);
+    
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-title">📂 NAČÍST ULOŽENOU HRU?</div>
+        
+        <div style="text-align: left; color: #b89968; line-height: 1.6; margin: 20px 0; background: rgba(20, 16, 12, 0.6); padding: 20px; border-radius: 12px; border: 1px solid rgba(139, 90, 43, 0.3);">
+          <p style="margin-bottom: 12px; font-size: 16px; color: #d4a574;">
+            <strong>📊 Informace o uložené hře:</strong>
+          </p>
+          
+          <p style="margin-bottom: 8px;">
+            📅 <strong>Den:</strong> ${saveState.day || 1} (${season.icon} ${season.name})
+          </p>
+          
+          <p style="margin-bottom: 8px;">
+            👥 <strong>Kolonie:</strong> ${population} obyvatel
+          </p>
+          
+          <p style="margin-bottom: 8px;">
+            🍖 <strong>Jídlo:</strong> ${saveState.inventory?.food || 0} (${foodDays}d)
+          </p>
+          
+          <p style="margin-bottom: 8px;">
+            💧 <strong>Voda:</strong> ${saveState.inventory?.water_supply || 0} (${waterDays}d)
+          </p>
+          
+          <p style="margin-bottom: 8px;">
+            🌡️ <strong>Teplota:</strong> ${saveState.temperature || 15}°C
+          </p>
+          
+          <p style="margin-bottom: 8px;">
+            💰 <strong>Zlato:</strong> ${saveState.gold || 0}g
+          </p>
+          
+          ${saveState.fireActive ? '<p style="margin-bottom: 8px; color: #ff9944;">🔥 <strong>Oheň hoří!</strong></p>' : ''}
+        </div>
+        
+        <p class="nickname-info" style="color: #e67e7b; font-size: 13px; margin-top: -10px;">
+          ⚠️ Současný postup bude ztracen!
+        </p>
+        
+        <div class="modal-buttons">
+          <button class="modal-btn modal-btn-primary" onclick="game.confirmLoad()">
+            ✅ Načíst tuto hru
+          </button>
+          <button class="modal-btn modal-btn-secondary" onclick="game.closeModal('load-modal')">
+            ❌ Zrušit
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // Store save state for confirmLoad
+    this._pendingSaveState = saveState;
+  },
+
+  // ✅ CONFIRM LOAD - potvrzení a načtení hry
+  confirmLoad() {
+    if (!this._pendingSaveState) return;
+    
+    try {
+      // Load the saved state
+      this.state = this._pendingSaveState;
+      delete this._pendingSaveState;
+      
+      // Close modal
+      this.closeModal('load-modal');
+      
+      // Success feedback
+      this.log('📂 Hra úspěšně načtena!', 'success');
+      this.showNotification('📂 Hra načtena!');
+      
+      // GA Tracking
+      this.track('game_loaded', {
+        day: this.state.day,
+        season: this.seasons[this.state.season].name,
+        population: this.state.entities.length + 1
+      });
+      
+      // Re-render everything
+      this.render();
+      
+    } catch(e) {
+      this.closeModal('load-modal');
+      this.log('❌ Chyba při načítání hry', 'danger');
+      console.error('Load error:', e);
+    }
+  },
+
   reset() {
     // Odstraň game over overlay pokud existuje
     const overlay = document.querySelector('div[style*="position: fixed"]');
@@ -3320,6 +3745,33 @@ async backend(functionName, data = null) {
     });
   },
 
+  // ═══════════════════════════════════════════════════════════════
+  // ⚠️ CRITICAL FUNCTION - MAIN RENDER
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * 🎨 RENDER GAME
+   * 
+   * Aktualizuje celé UI podle aktuálního stavu (this.state).
+   * Volá všechny sub-render funkce (renderInventory, renderRecipes, atd.).
+   * 
+   * ⚠️ MUSÍ být voláno po každé změně stavu!
+   * 
+   * @returns {void}
+   * @fires renderInventory() - Updates inventory display
+   * @fires renderRecipes() - Updates recipe cards
+   * @fires renderEntities() - Updates entities section
+   * @fires updateFireIndicator() - Updates fire status
+   * @fires updateFooterStats() - Updates footer statistics
+   * @fires autoUnlockRecipes() - Checks for new recipes to unlock
+   * @sideeffects Updates entire DOM based on game state
+   * 
+   * @example
+   * game.state.day++;
+   * game.render(); // Update UI
+   * 
+   * @tested ✅ 2026-02-08 - All sections update correctly
+   */
   render() {
     document.getElementById('day').textContent = this.state.day;
     const season = this.seasons[this.state.season];

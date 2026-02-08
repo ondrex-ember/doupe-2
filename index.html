@@ -249,6 +249,64 @@ body::before {
   text-decoration: underline;
 }
 
+/* 🌤️ WEATHER WIDGET */
+.weather-widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-family: 'Space Mono', monospace;
+  background: rgba(111, 180, 197, 0.15);
+  border: 1px solid rgba(111, 180, 197, 0.3);
+  transition: all 0.3s ease;
+}
+
+.weather-widget:hover {
+  background: rgba(111, 180, 197, 0.25);
+  transform: translateY(-1px);
+}
+
+.weather-icon {
+  font-size: 16px;
+  animation: weatherPulse 4s ease-in-out infinite;
+}
+
+@keyframes weatherPulse {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+.weather-info {
+  color: #b89968;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .weather-widget {
+    font-size: 11px;
+    padding: 5px 10px;
+    margin-top: 6px;
+  }
+  
+  .weather-icon {
+    font-size: 14px;
+  }
+  
+  .weather-info {
+    font-size: 10px;
+  }
+}
+
 #header h2 {
   font-family: 'Space Mono', monospace;
   font-size: 24px;
@@ -1449,6 +1507,12 @@ button:active {
     <div>
       <span class="footer-title">🏠 DOUPĚ v2.0</span>
       <span class="footer-version"> • by Ondrex's <span class="ember-icon-small">🔥</span></span>
+      <br>
+      <!-- 🌤️ WEATHER WIDGET -->
+      <span class="weather-widget" id="weather-widget">
+        <span class="weather-icon">🌤️</span>
+        <span class="weather-info">Načítám počasí...</span>
+      </span>
     </div>
     <div class="footer-info">
       <span id="footer-stats">Kolonie: 1 👥 | Rekord: <span id="footer-best-run">0</span>d</span>
@@ -2265,6 +2329,9 @@ async backend(functionName, data = null) {
     
     // 📂 AUTO-LOAD: Nabídni načtení uložené hry
     this.checkAutoLoad();
+    
+    // 🌤️ WEATHER: Načti aktuální počasí pro Nový Bor
+    this.fetchWeather();
   },
 
   /**
@@ -2311,6 +2378,165 @@ async backend(functionName, data = null) {
         console.log('📂 Auto-load: No valid save found or day 1');
       }
     }, 500); // Počkej 500ms aby se UI stihlo vyrenderovat
+  },
+
+  /**
+   * 🌤️ FETCH WEATHER
+   * 
+   * Načte aktuální počasí pro Nový Bor (CZ) z Open-Meteo API.
+   * Zobrazí ikonu počasí, teplotu a popis v patičce.
+   * 
+   * @returns {Promise<void>}
+   * @sideeffects Updates #weather-widget DOM element
+   * 
+   * @api Open-Meteo (free, no API key needed)
+   * @tested ✅ 2026-02-08
+   */
+  async fetchWeather() {
+    try {
+      // Nový Bor coordinates
+      const lat = 50.7667;
+      const lon = 14.5333;
+      
+      // Open-Meteo API (free, no key needed)
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=Europe/Prague`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      const temp = Math.round(data.current.temperature_2m);
+      const weatherCode = data.current.weather_code;
+      const windSpeed = Math.round(data.current.wind_speed_10m);
+      
+      // Weather code to emoji + description
+      const weatherInfo = this.getWeatherInfo(weatherCode);
+      
+      // Update widget
+      const widget = document.getElementById('weather-widget');
+      if (widget) {
+        widget.innerHTML = `
+          <span class="weather-icon">${weatherInfo.icon}</span>
+          <span class="weather-info">
+            Nový Bor: ${temp}°C, ${weatherInfo.desc}${windSpeed > 20 ? ' 💨' : ''}
+          </span>
+        `;
+        
+        // Add click handler for detail
+        widget.style.cursor = 'pointer';
+        widget.onclick = () => this.showWeatherDetail(data);
+      }
+      
+    } catch(error) {
+      console.error('Weather fetch failed:', error);
+      const widget = document.getElementById('weather-widget');
+      if (widget) {
+        widget.innerHTML = `
+          <span class="weather-icon">❓</span>
+          <span class="weather-info">Počasí nedostupné</span>
+        `;
+      }
+    }
+  },
+
+  /**
+   * 🌦️ GET WEATHER INFO
+   * 
+   * Převede WMO weather code na emoji ikonu a český popis.
+   * 
+   * @param {number} code - WMO weather code
+   * @returns {Object} {icon: string, desc: string}
+   * 
+   * @see https://open-meteo.com/en/docs
+   */
+  getWeatherInfo(code) {
+    // WMO Weather interpretation codes
+    const weatherMap = {
+      0: { icon: '☀️', desc: 'jasno' },
+      1: { icon: '🌤️', desc: 'převážně jasno' },
+      2: { icon: '⛅', desc: 'polojasno' },
+      3: { icon: '☁️', desc: 'zataženo' },
+      45: { icon: '🌫️', desc: 'mlha' },
+      48: { icon: '🌫️', desc: 'jinovatka' },
+      51: { icon: '🌦️', desc: 'mrholení' },
+      53: { icon: '🌧️', desc: 'mrholení' },
+      55: { icon: '🌧️', desc: 'silné mrholení' },
+      61: { icon: '🌧️', desc: 'déšť' },
+      63: { icon: '🌧️', desc: 'déšť' },
+      65: { icon: '⛈️', desc: 'silný déšť' },
+      71: { icon: '🌨️', desc: 'sněžení' },
+      73: { icon: '🌨️', desc: 'sněžení' },
+      75: { icon: '❄️', desc: 'silné sněžení' },
+      77: { icon: '🌨️', desc: 'sněhové vločky' },
+      80: { icon: '🌦️', desc: 'přeháňky' },
+      81: { icon: '⛈️', desc: 'přeháňky' },
+      82: { icon: '⛈️', desc: 'silné přeháňky' },
+      85: { icon: '🌨️', desc: 'sněhové přeháňky' },
+      86: { icon: '❄️', desc: 'silné sněhové přeháňky' },
+      95: { icon: '⛈️', desc: 'bouřka' },
+      96: { icon: '⛈️', desc: 'bouřka s krupobitím' },
+      99: { icon: '⛈️', desc: 'silná bouřka' }
+    };
+    
+    return weatherMap[code] || { icon: '🌤️', desc: 'proměnlivé' };
+  },
+
+  /**
+   * 📊 SHOW WEATHER DETAIL
+   * 
+   * Zobrazí detailní modal s rozšířenými informacemi o počasí.
+   * 
+   * @param {Object} data - Weather data from API
+   * @returns {void}
+   */
+  showWeatherDetail(data) {
+    const temp = Math.round(data.current.temperature_2m);
+    const weatherCode = data.current.weather_code;
+    const windSpeed = Math.round(data.current.wind_speed_10m);
+    const weatherInfo = this.getWeatherInfo(weatherCode);
+    
+    this.openModal();
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'weather-modal';
+    
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-title">🌤️ POČASÍ V NOVÉM BORU</div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <div style="font-size: 64px; margin-bottom: 10px;">
+            ${weatherInfo.icon}
+          </div>
+          <div style="font-size: 48px; font-weight: 700; color: #d4a574; margin-bottom: 5px;">
+            ${temp}°C
+          </div>
+          <div style="font-size: 18px; color: #b89968; text-transform: capitalize;">
+            ${weatherInfo.desc}
+          </div>
+        </div>
+        
+        <div style="text-align: left; color: #b89968; line-height: 1.8; margin: 20px 0;">
+          <p style="margin-bottom: 8px;">
+            💨 <strong>Vítr:</strong> ${windSpeed} km/h
+          </p>
+          <p style="margin-bottom: 8px;">
+            📍 <strong>Lokace:</strong> Nový Bor, Česká republika
+          </p>
+          <p style="font-size: 11px; opacity: 0.7; margin-top: 15px;">
+            Data z Open-Meteo API • Aktualizováno: ${new Date().toLocaleTimeString('cs-CZ')}
+          </p>
+        </div>
+        
+        <div class="modal-buttons">
+          <button class="modal-btn modal-btn-secondary" onclick="game.closeModal('weather-modal')">
+            Zavřít
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
   },
 
   log(text, type = 'info') {

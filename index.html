@@ -106,6 +106,34 @@ body::before {
   50% { opacity: 0.8; }
 }
 
+/* 🔥 EMBER LINK STYLING */
+a {
+  color: #d4a574;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  text-shadow: 0 0 8px rgba(255, 120, 40, 0.3);
+  position: relative;
+}
+
+a:hover {
+  color: #ff9944;
+  text-shadow: 0 0 12px rgba(255, 120, 40, 0.8);
+  animation: emberLinkGlow 1.5s ease-in-out infinite;
+}
+
+a:active {
+  color: #ff7828;
+}
+
+@keyframes emberLinkGlow {
+  0%, 100% { 
+    text-shadow: 0 0 12px rgba(255, 120, 40, 0.8);
+  }
+  50% { 
+    text-shadow: 0 0 16px rgba(255, 100, 20, 1);
+  }
+}
+
 #game-container {
   width: 100%;
   max-width: 1000px;
@@ -1508,7 +1536,7 @@ button:active {
   <div id="footer">
     <div>
       <span class="footer-title">🏠 DOUPĚ v2.0</span>
-      <span class="footer-version"> • by Ondrex's <a href="https://www.ember-pa.cz">Ember</a><span class="ember-icon-small">🔥</span></span>
+      <span class="footer-version"> • by Ondrex's <a href="https://www.ember-pa.cz">Ember<span class="ember-icon-small">🔥</span></a></span>
       <br>
       <!-- 🌤️ WEATHER WIDGET -->
       <span class="weather-widget" id="weather-widget">
@@ -4106,6 +4134,7 @@ window.onload = () => game.init();
 </script>
 </body>
 </html>
+
 
 
 

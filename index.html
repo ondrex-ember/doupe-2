@@ -1807,8 +1807,11 @@ async backend(functionName, data = null) {
     storage: { name: 'Sklad', icon: '📦', desc: 'Uchovává zásoby přes zimu', sellPrice: 50 },
     insulation: { name: 'Izolace', icon: '🧱', desc: 'Zlepšuje tepelnou izolaci', sellPrice: 80 },
     fireplace: { name: 'Krb', icon: '🔥', desc: 'Vytápí doupě', sellPrice: 100 },
-    dried_meat: { name: 'Sušené maso', icon: '🥩', desc: 'Vydrží přes zimu', sellPrice: 25 }
-  },
+    dried_meat: { name: 'Sušené maso', icon: '🥩', desc: 'Vydrží přes zimu', sellPrice: 25 },
+    wall: { name: 'Dřevěná hradba', icon: '🛡️', desc: 'Chrání před útoky', sellPrice: 120 },
+    guard_tower: { name: 'Strážní věž', icon: '👁️', desc: 'Odhalí nepřátele', sellPrice: 100 },
+    medicine_hut: { name: 'Lékárna', icon: '💊', desc: 'Léčí zranění', sellPrice: 80 },
+    },
 
   recipes: [
     // Tier 1 - Základy
@@ -1967,6 +1970,34 @@ async backend(functionName, data = null) {
       result: { insulation: 1 },
       tier: 4,
       desc: 'Zlepšuje izolaci doupěte'
+    },
+    {
+      id: 'wall',
+      name: 'Dřevěná hradba',
+      icon: '🛡️',
+      materials: { plank: 10, stone: 5, rope: 3 },
+      result: { wall: 1 },
+      tier: 4,
+      desc: 'Chrání kolonii před útoky'
+    },
+    {
+      id: 'guard_tower',
+      name: 'Strážní věž',
+      icon: '👁️',
+      materials: { plank: 8, rope: 4 },
+      requires: { bow: 1 },
+      result: { guard_tower: 1 },
+      tier: 4,
+      desc: 'Odhalí nepřátele na dálku'
+    },
+    {
+      id: 'medicine_hut',
+      name: 'Lékárna',
+      icon: '💊',
+      materials: { plank: 6, fiber: 12, mushroom: 5 },
+      result: { medicine_hut: 1 },
+      tier: 4,
+      desc: 'Léčí nemoci a zranění'
     }
   ],
 
@@ -2022,6 +2053,441 @@ async backend(functionName, data = null) {
     }
   ],
 
+    // ═══════════════════════════════════════════════════════════════
+    // 🗡️ ATTACK SYSTEM - PART 1: Attack Events & Defense Items
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🗡️ THREATS SYSTEM - Universal Combat Configuration
+  // ═══════════════════════════════════════════════════════════════
+  
+  threats: {
+    // ═══════════════════════════════════════════════════════════════
+    // 🏴‍☠️ TIER 3: Nájezdníci (těžké)
+    // ═══════════════════════════════════════════════════════════════
+    bandits: {
+      id: 'bandits',
+      name: 'Nájezd banditů',
+      icon: '🏴‍☠️',
+      tier: 3,
+      seasons: [2, 3], // podzim, zima
+      
+      intro: 'Banditi objevili doupě! Chtějí tvoje zlato a zásoby.',
+      
+      playerIcon: '🏹',
+      enemyIcon: '🗡️',
+      aiDifficulty: 'hard',
+      boardSize: 8,
+      
+      onDefeat: {
+        gold: -0.5, // 50% zlata
+        items: { 
+          food: [-30, -50],
+          water_supply: [-20, -30] 
+        },
+        casualties: 0.3, // 30% šance na smrt entity
+        message: '🏴‍☠️ Banditi ukradli zásoby a zlato!'
+      },
+      onVictory: {
+        gold: [50, 100],
+        items: { leather: [3, 6] },
+        message: '🏹 Banditi poraženi! Zabavuješ jejich výbavu.'
+      }
+    },
+  
+    // ═══════════════════════════════════════════════════════════════
+    // 🐺 TIER 3: Vlci (těžké, zvláště v zimě)
+    // ═══════════════════════════════════════════════════════════════
+    wolves: {
+      id: 'wolves',
+      name: 'Útok vlčí smečky',
+      icon: '🐺',
+      tier: 3,
+      seasons: [2, 3], // podzim, zima (hladoví)
+      
+      intro: 'Hladová smečka vlků vnikla do doupěte!',
+      
+      playerIcon: '🔥',
+      enemyIcon: '🐺',
+      aiDifficulty: 'hard',
+      boardSize: 7,
+      
+      onDefeat: {
+        items: { 
+          food: [-40, -60],
+        },
+        casualties: 0.4, // 40% šance
+        message: '🐺 Vlci zabili obyvatele a ukradli jídlo!'
+      },
+      onVictory: {
+        items: { 
+          leather: [5, 10],
+          food: [20, 30]
+        },
+        message: '🔥 Vlci poraženi! Získáváš kůže a maso.'
+      }
+    },
+  
+    // ═══════════════════════════════════════════════════════════════
+    // 🐀 TIER 2: Krysy (střední)
+    // ═══════════════════════════════════════════════════════════════
+    rats: {
+      id: 'rats',
+      name: 'Zamoření krysami',
+      icon: '🐀',
+      tier: 2,
+      seasons: [0, 1, 2], // ne v zimě
+      
+      intro: 'Horda krys se valí z tunelů! Útočí na zásoby.',
+      
+      playerIcon: '🪤',
+      enemyIcon: '🐀',
+      aiDifficulty: 'medium',
+      boardSize: 6,
+      
+      onDefeat: {
+        items: { 
+          food: [-30, -50],
+          water_supply: [-20, -30] 
+        },
+        casualties: 0.2,
+        message: '🐀 Krysy zničily zásoby!'
+      },
+      onVictory: {
+        items: { 
+          leather: [2, 5],
+          food: [10, 20]
+        },
+        message: '🪤 Krysy poraženy! Získáváš kůže.'
+      }
+    },
+  
+    // ═══════════════════════════════════════════════════════════════
+    // 🦟 TIER 1: Hmyz (lehké, obtížné)
+    // ═══════════════════════════════════════════════════════════════
+    bugs: {
+      id: 'bugs',
+      name: 'Invaze hmyzu',
+      icon: '🪲',
+      tier: 1,
+      seasons: [0, 1], // jaro, léto
+      
+      intro: 'Štěnice a švábi se rojí v doupěti! Obyvatelé nemohou spát.',
+      
+      playerIcon: '💨',
+      enemyIcon: '🦟',
+      aiDifficulty: 'easy',
+      boardSize: 5,
+      
+      onDefeat: {
+        items: { 
+          food: [-10, -20],
+        },
+        casualties: 0.1,
+        message: '🪲 Hmyz zničil část zásob!'
+      },
+      onVictory: {
+        items: { 
+          food: [5, 10] // spálený hmyz = protein
+        },
+        message: '💨 Hmyz vykouřen! Obyvatelé mohou spát.'
+      }
+    },
+  
+    // ═══════════════════════════════════════════════════════════════
+    // 💀 TIER 4: Mor (kritické, kdykoliv)
+    // ═══════════════════════════════════════════════════════════════
+    plague: {
+      id: 'plague',
+      name: 'Epidemie moru',
+      icon: '💀',
+      tier: 4,
+      seasons: null, // kdykoliv
+      
+      intro: 'Záhadná nemoc se šíří kolonií! Lidé umírají.',
+      
+      playerIcon: '💊',
+      enemyIcon: '🦠',
+      aiDifficulty: 'medium',
+      boardSize: 8,
+      
+      // Můžeš skipnout pokud máš medicine_hut
+      canAvoid: { medicine_hut: 1 },
+      avoidMessage: '💊 Lékárna zachránila kolonii od epidemie!',
+      
+      onDefeat: {
+        casualties: 0.5, // 50% šance!
+        items: {
+          food: [-20, -30]
+        },
+        message: '💀 Mor zabil část kolonie!'
+      },
+      onVictory: {
+        message: '💊 Nemoc zastavena! Kolonie přežila.'
+      }
+    }
+  },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // 🎮 COMBAT SYSTEM - Piškvorky 8x8
+  // ═══════════════════════════════════════════════════════════════
+  
+  combat: {
+    board: null,
+    size: 8,
+    currentThreat: null,
+    playerIcon: '🏹',
+    enemyIcon: '🗡️',
+    gameActive: false,
+    
+    init(threat) {
+      this.currentThreat = threat;
+      this.size = threat.boardSize || 8;
+      this.playerIcon = threat.playerIcon;
+      this.enemyIcon = threat.enemyIcon;
+      this.board = Array(this.size).fill(null).map(() => Array(this.size).fill(null));
+      this.gameActive = true;
+    },
+    
+    makeMove(row, col) {
+      if (!this.gameActive || this.board[row][col]) return false;
+      
+      this.board[row][col] = 'player';
+      
+      // Check win
+      if (this.checkWin('player')) {
+        this.gameActive = false;
+        return 'player_win';
+      }
+      
+      // Check draw
+      if (this.isBoardFull()) {
+        this.gameActive = false;
+        return 'draw';
+      }
+      
+      // AI move
+      setTimeout(() => {
+        this.aiMove();
+        
+        if (this.checkWin('enemy')) {
+          this.gameActive = false;
+          game.handleCombatEnd(false);
+        } else if (this.isBoardFull()) {
+          this.gameActive = false;
+          game.handleCombatEnd(true); // draw = player win
+        }
+      }, 500);
+      
+      return true;
+    },
+    
+    aiMove() {
+      const difficulty = this.currentThreat.aiDifficulty;
+      let move = null;
+      
+      switch(difficulty) {
+        case 'easy':
+          move = this.findRandomMove();
+          break;
+        case 'medium':
+          move = this.findBlockingMove() || this.findWinningMove() || this.findRandomMove();
+          break;
+        case 'hard':
+          move = this.findWinningMove() || this.findBlockingMove() || this.findStrategicMove();
+          break;
+        case 'expert':
+          move = this.findBestMove();
+          break;
+      }
+      
+      if (move) {
+        this.board[move.row][move.col] = 'enemy';
+        game.renderCombatBoard();
+      }
+    },
+    
+    findWinningMove() {
+      // Find move that wins for AI
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          if (!this.board[r][c]) {
+            this.board[r][c] = 'enemy';
+            if (this.checkWin('enemy')) {
+              this.board[r][c] = null;
+              return { row: r, col: c };
+            }
+            this.board[r][c] = null;
+          }
+        }
+      }
+      return null;
+    },
+    
+    findBlockingMove() {
+      // Find move that blocks player from winning
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          if (!this.board[r][c]) {
+            this.board[r][c] = 'player';
+            if (this.checkWin('player')) {
+              this.board[r][c] = null;
+              return { row: r, col: c };
+            }
+            this.board[r][c] = null;
+          }
+        }
+      }
+      return null;
+    },
+    
+    findStrategicMove() {
+      // Prefer center, then adjacent to existing pieces
+      const center = Math.floor(this.size / 2);
+      
+      // Try center
+      if (!this.board[center][center]) {
+        return { row: center, col: center };
+      }
+      
+      // Try near existing pieces
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          if (this.board[r][c] && this.hasEmptyNeighbor(r, c)) {
+            const empty = this.getEmptyNeighbor(r, c);
+            if (empty) return empty;
+          }
+        }
+      }
+      
+      return this.findRandomMove();
+    },
+    
+    findRandomMove() {
+      const empty = [];
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          if (!this.board[r][c]) empty.push({ row: r, col: c });
+        }
+      }
+      return empty.length > 0 ? empty[Math.floor(Math.random() * empty.length)] : null;
+    },
+    
+    findBestMove() {
+      // Expert AI - look ahead 2 moves
+      let bestScore = -Infinity;
+      let bestMove = null;
+      
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          if (!this.board[r][c]) {
+            this.board[r][c] = 'enemy';
+            const score = this.minimax(1, false, -Infinity, Infinity);
+            this.board[r][c] = null;
+            
+            if (score > bestScore) {
+              bestScore = score;
+              bestMove = { row: r, col: c };
+            }
+          }
+        }
+      }
+      
+      return bestMove || this.findRandomMove();
+    },
+    
+    minimax(depth, isMaximizing, alpha, beta) {
+      if (this.checkWin('enemy')) return 10 - depth;
+      if (this.checkWin('player')) return depth - 10;
+      if (this.isBoardFull() || depth > 2) return 0;
+      
+      if (isMaximizing) {
+        let maxScore = -Infinity;
+        for (let r = 0; r < this.size; r++) {
+          for (let c = 0; c < this.size; c++) {
+            if (!this.board[r][c]) {
+              this.board[r][c] = 'enemy';
+              const score = this.minimax(depth + 1, false, alpha, beta);
+              this.board[r][c] = null;
+              maxScore = Math.max(score, maxScore);
+              alpha = Math.max(alpha, score);
+              if (beta <= alpha) break;
+            }
+          }
+        }
+        return maxScore;
+      } else {
+        let minScore = Infinity;
+        for (let r = 0; r < this.size; r++) {
+          for (let c = 0; c < this.size; c++) {
+            if (!this.board[r][c]) {
+              this.board[r][c] = 'player';
+              const score = this.minimax(depth + 1, true, alpha, beta);
+              this.board[r][c] = null;
+              minScore = Math.min(score, minScore);
+              beta = Math.min(beta, score);
+              if (beta <= alpha) break;
+            }
+          }
+        }
+        return minScore;
+      }
+    },
+    
+    hasEmptyNeighbor(r, c) {
+      const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+      return dirs.some(([dr,dc]) => {
+        const nr = r + dr, nc = c + dc;
+        return nr >= 0 && nr < this.size && nc >= 0 && nc < this.size && !this.board[nr][nc];
+      });
+    },
+    
+    getEmptyNeighbor(r, c) {
+      const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < this.size && nc >= 0 && nc < this.size && !this.board[nr][nc]) {
+          return { row: nr, col: nc };
+        }
+      }
+      return null;
+    },
+    
+    checkWin(player) {
+      // Check 5 in a row (horizontal, vertical, diagonal)
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          if (this.board[r][c] === player) {
+            // Check all 4 directions
+            if (this.checkDirection(r, c, 0, 1, player) || // horizontal
+                this.checkDirection(r, c, 1, 0, player) || // vertical
+                this.checkDirection(r, c, 1, 1, player) || // diagonal \
+                this.checkDirection(r, c, 1, -1, player)) { // diagonal /
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    },
+    
+    checkDirection(r, c, dr, dc, player) {
+      let count = 0;
+      for (let i = 0; i < 5; i++) {
+        const nr = r + i * dr;
+        const nc = c + i * dc;
+        if (nr < 0 || nr >= this.size || nc < 0 || nc >= this.size || this.board[nr][nc] !== player) {
+          return false;
+        }
+        count++;
+      }
+      return count === 5;
+    },
+    
+    isBoardFull() {
+      return this.board.every(row => row.every(cell => cell !== null));
+    }
+  },
+  
   entityTypes: [
     {
       id: 'gatherer',
@@ -2076,10 +2542,16 @@ async backend(functionName, data = null) {
           requiresFire: true,
           isFuelAction: true,
           result: () => ({ fireFuel: 2 })
+        },
+        {
+          name: '⚔️Hlídat doupě',
+          duration: 1,
+          isGuarding: true,
+          result: () => ({ })
         }
       ]
-    },
-    {
+     },
+     {
       id: 'hunter',
       name: 'Lovec',
       icon: '🏹',
@@ -2095,8 +2567,8 @@ async backend(functionName, data = null) {
           })
         }
       ]
-    }
-  ],
+     }
+   ],
 
   // Google Analytics 4 - Server-Side Tracking
   track(eventName, params = {}) {
@@ -2310,12 +2782,20 @@ async backend(functionName, data = null) {
       food: 60,
       water_supply: 60
     };
+    this.state.season = 0; // Jaro
+    this.state.day = 1;
+    this.state.entities = [];
+    this.state.gold = 0;
     this.state.temperature = 15;
     this.state.shelterLevel = 1;
     this.state.heating = 0;
     this.state.guaranteedStones = 0;
     this.state.fireActive = false; // 🔥
     this.state.fireFuel = 0; // 🔥
+    this.state.lastSeasonalThreat = 0;
+    this.state.randomThreatCount = 0;
+    this.state.maxRandomThreats = 3;
+    this.state.threatCooldown = 3;
     this.state.unlockedRecipes = ['stick', 'rope', 'bowl', 'trap', 'basket'];
     
     // 🌐 Environment Detection
@@ -3110,6 +3590,9 @@ async backend(functionName, data = null) {
 
     // Náhodná událost
     this.triggerRandomEvent();
+
+    // 🗡️ Check for threats
+    this.checkThreats();
 
     // Denní spotřeba podle sezóny + POPULATION SCALING + TEMPERATURE EFFECTS
     // První entita je "free" (základní spotřeba), každá další +40%
@@ -4130,18 +4613,409 @@ async backend(functionName, data = null) {
     if (unlocked) {
       this.renderRecipes();
     }
-  }
+  },
+  // ═══════════════════════════════════════════════════════════════
+  // 🎲 THREAT TRIGGER SYSTEM
+  // ═══════════════════════════════════════════════════════════════
+
+  // Add to state in init():
+  state: {
+    // ... existing state
+    lastSeasonalThreat: 0,
+    randomThreatCount: 0,
+    maxRandomThreats: 3, // nastavitelné
+    threatCooldown: 3, // min 3 dny mezi hrozbami
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🎯 CHECK THREATS (volat v nextDay())
+  // ═══════════════════════════════════════════════════════════════
+  checkThreats() {
+    const daysSinceLastThreat = this.state.day - (this.state.lastSeasonalThreat || 0);
+
+    // Cooldown check
+    if (daysSinceLastThreat < this.state.threatCooldown) {
+      return;
+    }
+
+    // 🏁 Konec období = garantovaný seasonal threat
+    if (this.state.day % 15 === 0 && this.state.day > 0) {
+      this.triggerSeasonalThreat();
+      return;
+    }
+
+    // 🎲 Random threat (pouze od 5. dne)
+    if (this.state.day >= 5 && this.state.randomThreatCount < this.state.maxRandomThreats) {
+      const chance = 0.10; // 10% per day
+      if (Math.random() < chance) {
+        this.triggerRandomThreat();
+      }
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🌍 SEASONAL THREAT (konec období)
+  // ═══════════════════════════════════════════════════════════════
+  triggerSeasonalThreat() {
+    const currentSeason = this.state.season;
+
+    // Filter threats by season
+    const seasonalThreats = Object.values(this.threats).filter(t => 
+      t.seasons && t.seasons.includes(currentSeason)
+    );
+
+    if (seasonalThreats.length === 0) {
+      // Fallback to any threat
+      const allThreats = Object.values(this.threats).filter(t => t.seasons);
+      if (allThreats.length > 0) {
+        const threat = allThreats[Math.floor(Math.random() * allThreats.length)];
+        this.triggerThreat(threat, true);
+      }
+      return;
+    }
+
+    // Weighted random (tier = weight)
+    const totalWeight = seasonalThreats.reduce((sum, t) => sum + t.tier, 0);
+    let roll = Math.random() * totalWeight;
+
+    for (const threat of seasonalThreats) {
+      roll -= threat.tier;
+      if (roll <= 0) {
+        this.triggerThreat(threat, true);
+        return;
+      }
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🎲 RANDOM THREAT (kdykoliv)
+  // ═══════════════════════════════════════════════════════════════
+  triggerRandomThreat() {
+    const allThreats = Object.values(this.threats);
+    const threat = allThreats[Math.floor(Math.random() * allThreats.length)];
+
+    this.triggerThreat(threat, false);
+    this.state.randomThreatCount++;
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ⚔️ TRIGGER THREAT (main)
+  // ═══════════════════════════════════════════════════════════════
+  triggerThreat(threat, isSeasonal) {
+    this.state.lastSeasonalThreat = this.state.day;
+
+    // Check if can avoid (medicine_hut for plague)
+    if (threat.canAvoid) {
+      const canAvoid = Object.entries(threat.canAvoid).every(([item, count]) => 
+        (this.state.inventory[item] || 0) >= count
+      );
+
+      if (canAvoid) {
+        this.log(threat.avoidMessage, 'success');
+        this.showNotification('💊 Hrozba odvrácena!');
+
+        // GA4 tracking
+        this.track('threat_avoided', {
+          threat_id: threat.id,
+          threat_name: threat.name,
+          day: this.state.day
+        });
+
+        return;
+      }
+    }
+
+    // Show combat modal
+    this.showCombatModal(threat);
+
+    // GA4 tracking
+    this.track('threat_triggered', {
+      threat_id: threat.id,
+      threat_name: threat.name,
+      threat_tier: threat.tier,
+      is_seasonal: isSeasonal,
+      day: this.state.day
+    });
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🎨 COMBAT UI - Modal & Rendering
+  // ═══════════════════════════════════════════════════════════════
+
+  // ═══════════════════════════════════════════════════════════════
+  // 📋 SHOW COMBAT MODAL
+  // ═══════════════════════════════════════════════════════════════
+  showCombatModal(threat) {
+    this.openModal();
+
+    // Init combat system
+    this.combat.init(threat);
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'combat-modal';
+
+    const seasonName = this.seasons[this.state.season].name;
+
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 600px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="font-size: 48px; margin-bottom: 10px;">${threat.icon}</div>
+          <h2 style="color: #e74c3c; font-size: 24px; margin-bottom: 10px;">
+            ${threat.name}
+          </h2>
+          <p style="color: #b89968; font-size: 20px; line-height: 1.6;">
+            ${threat.intro}
+          </p>
+          <div style="margin-top: 10px; padding: 14px; background: rgba(231, 76, 60, 0.1); border-radius: 4px;">
+            <span style="color: #e8d5b7; font-size: 12px;">
+              ${seasonName} | Den ${this.state.day} | Obtížnost: ${threat.aiDifficulty.toUpperCase()}
+            </span>
+          </div>
+        </div>
+
+        <div id="combat-board-container" style="margin: 20px 0; text-align: center;">
+          ${this.renderCombatBoardHTML()}
+        </div>
+
+        <div id="combat-status" style="text-align: center; margin: 18px 0; color: #4ec9b0; font-size: 14px; font-weight: 600;">
+          Tvůj tah: ${threat.playerIcon}
+        </div>
+
+        <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+          <button class="modal-btn modal-btn-secondary" onclick="game.fleeCombat()" style="flex: 1; max-width: 200px;">
+            🏃 Utéct (50% ztrát)
+          </button>
+        </div>
+
+        <div style="margin-top: 15px; padding: 10px; background: rgba(20, 16, 12, 0.3); border-radius: 4px; font-size: 12px; color: #9ca3af;">
+          <strong style="color: #e8d5b7;">Pravidla:</strong> Sestav 5 symbolů v řadě (vodorovně, svisle nebo diagonálně).
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🎮 RENDER COMBAT BOARD
+  // ═══════════════════════════════════════════════════════════════
+  renderCombatBoardHTML() {
+    const size = this.combat.size;
+    let html = '<div style="display: inline-block; background: #1a1410; padding: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);">';
+
+    for (let r = 0; r < size; r++) {
+      html += '<div style="display: flex;">';
+      for (let c = 0; c < size; c++) {
+        const cell = this.combat.board[r][c];
+        const icon = cell === 'player' ? this.combat.playerIcon : 
+                     cell === 'enemy' ? this.combat.enemyIcon : '';
+
+        html += `
+          <div 
+            onclick="game.handleCombatClick(${r}, ${c})" 
+            style="
+              width: 50px; 
+              height: 50px; 
+              border: 1px solid rgba(232, 213, 183, 0.2); 
+              display: flex; 
+              align-items: center; 
+              justify-content: center; 
+              cursor: pointer;
+              font-size: 24px;
+              background: ${cell ? 'rgba(232, 213, 183, 0.05)' : 'transparent'};
+              transition: all 0.2s;
+            "
+            onmouseover="if (!this.innerHTML.trim()) this.style.background='rgba(78, 200, 176, 0.1)'"
+            onmouseout="if (!this.innerHTML.trim()) this.style.background='transparent'"
+          >
+            ${icon}
+          </div>
+        `;
+      }
+      html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  },
+
+  renderCombatBoard() {
+    const container = document.getElementById('combat-board-container');
+    if (container) {
+      container.innerHTML = this.renderCombatBoardHTML();
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🖱️ HANDLE COMBAT CLICK
+  // ═══════════════════════════════════════════════════════════════
+  handleCombatClick(row, col) {
+    if (!this.combat.gameActive) return;
+
+    const result = this.combat.makeMove(row, col);
+
+    if (result === 'player_win') {
+      setTimeout(() => this.handleCombatEnd(true), 500);
+    } else if (result === 'draw') {
+      setTimeout(() => this.handleCombatEnd(true), 500);
+    } else if (result) {
+      this.renderCombatBoard();
+      document.getElementById('combat-status').innerHTML = 
+        `Nepřítel přemýšlí... ${this.combat.enemyIcon}`;
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🏆 HANDLE COMBAT END
+  // ═══════════════════════════════════════════════════════════════
+  handleCombatEnd(playerWon) {
+    const threat = this.combat.currentThreat;
+    const outcome = playerWon ? threat.onVictory : threat.onDefeat;
+
+    // Apply consequences
+    if (outcome.items) {
+      for (const [itemId, value] of Object.entries(outcome.items)) {
+        if (Array.isArray(value)) {
+          // Range [min, max]
+          const amount = Math.floor(Math.random() * (value[1] - value[0] + 1)) + value[0];
+          if (amount > 0) {
+            this.addItem(itemId, amount);
+          } else {
+            this.removeItem(itemId, Math.abs(amount));
+          }
+        } else {
+          if (value > 0) {
+            this.addItem(itemId, value);
+          } else {
+            this.removeItem(itemId, Math.abs(value));
+          }
+        }
+      }
+    }
+
+    if (outcome.gold) {
+      if (Array.isArray(outcome.gold)) {
+        const amount = Math.floor(Math.random() * (outcome.gold[1] - outcome.gold[0] + 1)) + outcome.gold[0];
+        this.state.gold += amount;
+      } else if (outcome.gold < 1 && outcome.gold > -1) {
+        // Percentage
+        this.state.gold = Math.floor(this.state.gold * (1 + outcome.gold));
+      } else {
+        this.state.gold += outcome.gold;
+      }
+    }
+
+    if (outcome.casualties && this.state.entities.length > 0) {
+      if (Math.random() < outcome.casualties) {
+        const victim = this.state.entities[Math.floor(Math.random() * this.state.entities.length)];
+        this.state.entities = this.state.entities.filter(e => e.id !== victim.id);
+        this.log(`💀 ${victim.name} zahynul v boji!`, 'danger');
+
+        // GA4 tracking
+        this.track('entity_death', {
+          entity_type: victim.type,
+          entity_name: victim.name,
+          cause: 'combat',
+          threat_id: threat.id,
+          day: this.state.day
+        });
+      }
+    }
+
+    // Show result
+    const resultModal = document.createElement('div');
+    resultModal.className = 'modal-overlay';
+    resultModal.style.zIndex = '10001';
+
+    resultModal.innerHTML = `
+      <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <div style="font-size: 72px; margin-bottom: 20px;">
+          ${playerWon ? '🎉' : '💀'}
+        </div>
+        <h2 style="color: ${playerWon ? '#4ec9b0' : '#e74c3c'}; font-size: 28px; margin-bottom: 15px;">
+          ${playerWon ? 'Vítězství!' : 'Porážka!'}
+        </h2>
+        <p style="color: #e8d5b7; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          ${outcome.message}
+        </p>
+        <button class="modal-btn modal-btn-primary" onclick="game.closeCombatResult()">
+          Pokračovat
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(resultModal);
+
+    // Log
+    this.log(outcome.message, playerWon ? 'success' : 'danger');
+
+    // GA4 tracking
+    this.track('combat_ended', {
+      threat_id: threat.id,
+      threat_name: threat.name,
+      outcome: playerWon ? 'victory' : 'defeat',
+      day: this.state.day
+    });
+
+    // Close combat modal
+    this.closeModal('combat-modal');
+
+    // Render updates
+    this.render();
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🏃 FLEE COMBAT
+  // ═══════════════════════════════════════════════════════════════
+  fleeCombat() {
+    if (!confirm('Opravdu chceš utéct? Utrpíš 50% ztrát z porážky!')) return;
+
+    const threat = this.combat.currentThreat;
+    const outcome = threat.onDefeat;
+
+    // Apply 50% of defeat consequences
+    if (outcome.items) {
+      for (const [itemId, value] of Object.entries(outcome.items)) {
+        if (Array.isArray(value)) {
+          const amount = Math.floor((Math.random() * (value[1] - value[0] + 1)) + value[0]) * 0.5;
+          this.removeItem(itemId, Math.ceil(Math.abs(amount)));
+        } else if (value < 0) {
+          this.removeItem(itemId, Math.ceil(Math.abs(value) * 0.5));
+        }
+      }
+    }
+
+    if (outcome.casualties && this.state.entities.length > 0) {
+      if (Math.random() < (outcome.casualties * 0.5)) {
+        const victim = this.state.entities[Math.floor(Math.random() * this.state.entities.length)];
+        this.state.entities = this.state.entities.filter(e => e.id !== victim.id);
+        this.log(`💀 ${victim.name} zahynul při útěku!`, 'danger');
+      }
+    }
+
+    this.log(`🏃 Uprchl jsi z boje! Ale s těžkými ztrátami...`, 'warning');
+
+    // GA4 tracking
+    this.track('combat_fled', {
+      threat_id: threat.id,
+      threat_name: threat.name,
+      day: this.state.day
+    });
+
+    this.closeModal('combat-modal');
+    this.render();
+  },
+
+  closeCombatResult() {
+    const modals = document.querySelectorAll('.modal-overlay');
+    modals.forEach(m => m.remove());
+    this.closeModal('combat-modal');
+  },
+
 };
 
 window.onload = () => game.init();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-

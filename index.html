@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- SEO Meta Tags -->
 <title>🏠 Doupě 2 - Survival Crafting</title>
+<meta name="description" content="Ondrex's Ember Nidus - Doupe. Survival crafting game with real world assets features">
+<meta name="keywords" content="doupe, doupě, survival crafting game, ondrex, ondrex ember">
+<meta name="author" content="Ondrex Ember">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://ondrex-ember.github.io/doupe-2/">
 
 <link rel="icon" href="favicon.ico">
   
@@ -336,6 +342,13 @@ a:active {
     font-size: 10px;
   }
 }
+
+/* Weather mode selector - minimální styl */
+.weather-mode-selector{display:inline-flex;gap:3px;margin-left:8px;padding:2px 4px;border-radius:6px;background:rgba(139,90,43,0.1);border:1px solid rgba(139,90,43,0.2)}
+.weather-mode-btn{padding:3px 6px;border:none;border-radius:4px;background:transparent;color:#9a8670;font-size:16px;cursor:pointer;transition:all .2s;opacity:.5}
+.weather-mode-btn:hover{opacity:.8;background:rgba(139,90,43,0.15)}
+.weather-mode-btn.active{opacity:1;background:rgba(139,90,43,0.25)}
+@media(max-width:768px){.weather-mode-selector{margin-left:4px;padding:2px 3px}.weather-mode-btn{font-size:14px;padding:2px 4px}}
 
 #header h2 {
   font-family: 'Space Mono', monospace;
@@ -1449,6 +1462,12 @@ button:active {
     <div id="season-info">
       <span class="big">Den <span id="day">1</span></span>
       <span class="small"><span id="season">Jaro</span></span>
+      <!-- Weather mode selector -->
+      <span class="weather-mode-selector">
+        <button class="weather-mode-btn active" data-mode="game" onclick="game.setWeatherMode('game')" title="Hra">🎮</button>
+        <button class="weather-mode-btn" data-mode="openmeteo" onclick="game.setWeatherMode('openmeteo')" title="Open-Meteo">🌍</button>
+        <button class="weather-mode-btn" data-mode="weatherxm" onclick="game.setWeatherMode('weatherxm')" title="WeatherXM">📡</button>
+      </span>
       <!-- 🔥 FIRE INDICATOR -->
       <span class="fire-indicator inactive" id="fire-indicator">
         <span class="fire-icon">🔥</span>
@@ -1670,20 +1689,34 @@ async backend(functionName, data = null) {
   // GitHub environment - USE JSONP (CORS workaround)
   return new Promise((resolve, reject) => {
     try {
-      console.log(`🌐 API call: ${functionName}`);
+      console.log(`🌐 JSONP call: ${functionName}`, data ? `with data` : 'no data');
+      
+      // Timeout pro detekci zatuhlého volání
+      const timeout = setTimeout(() => {
+        console.error(`⏱️ JSONP timeout after 30s: ${functionName}`);
+        cleanup();
+        reject(new Error(`API timeout after 30s: ${functionName}`));
+      }, 30000); // 30s timeout
       
       // Generate unique callback name
       const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       
+      let script;
+      
+      const cleanup = () => {
+        clearTimeout(timeout);
+        if (window[callbackName]) {
+          delete window[callbackName];
+        }
+        if (script && script.parentNode) {
+          document.body.removeChild(script);
+        }
+      };
+      
       // Create global callback function
       window[callbackName] = function(response) {
-        console.log(`✅ API response:`, response);
-        
-        // Cleanup
-        delete window[callbackName];
-        document.body.removeChild(script);
-        
-        // Resolve promise
+        console.log(`✅ JSONP response from ${functionName}:`, response);
+        cleanup();
         resolve(response);
       };
       
@@ -1694,15 +1727,15 @@ async backend(functionName, data = null) {
         callback: callbackName
       });
       
+      const url = `${this.BACKEND_API_URL}?${params}`;
+      console.log(`📡 JSONP URL:`, url.substring(0, 150) + '...');
+      
       // Create script tag for JSONP
-      const script = document.createElement('script');
-      script.src = `${this.BACKEND_API_URL}?${params}`;
-      script.onerror = function() {
-        console.error(`❌ API call failed: ${functionName}`);
-        
-        // Cleanup
-        delete window[callbackName];
-        document.body.removeChild(script);
+      script = document.createElement('script');
+      script.src = url;
+      script.onerror = function(e) {
+        console.error(`❌ JSONP script load failed: ${functionName}`, e);
+        cleanup();
         
         // Return mock success for non-critical functions
         if (functionName === 'trackEvent') {
@@ -1710,7 +1743,7 @@ async backend(functionName, data = null) {
         } else if (functionName === 'logTransaction') {
           resolve({ success: true, message: 'Transaction logging skipped (API unavailable)' });
         } else {
-          reject(new Error('API call failed'));
+          reject(new Error(`JSONP script load failed: ${functionName}`));
         }
       };
       
@@ -1718,7 +1751,7 @@ async backend(functionName, data = null) {
       document.body.appendChild(script);
       
     } catch(error) {
-      console.error(`❌ API call failed:`, error);
+      console.error(`❌ JSONP call exception:`, error);
       reject(error);
     }
   });
@@ -1742,7 +1775,11 @@ async backend(functionName, data = null) {
     fireActive: false,
     fireFuel: 0,
     // 💰 ECONOMY SYSTEM
-    gold: 0
+    gold: 0,
+    // 🌤️ WEATHER MODE
+    weatherMode: 'game',
+    weatherData: null,
+    lastWeatherFetch: 0
   },
 
   seasons: [
@@ -2113,7 +2150,7 @@ async backend(functionName, data = null) {
       
       onDefeat: {
         items: { 
-          food: [-30, -50],
+          food: [-40, -60],
         },
         casualties: 0.4, // 40% šance
         message: '🐺 Vlci zabili obyvatele a ukradli jídlo!'
@@ -2597,10 +2634,16 @@ async backend(functionName, data = null) {
 
   calculateTemperature() {
     const season = this.seasons[this.state.season];
+    let targetTemp;
     
-    // Base temperature ze sezóny s náhodnou variance
-    const variance = (Math.random() - 0.5) * 2 * season.tempVariance;
-    let targetTemp = season.baseTemp + variance;
+    // Use real weather if available
+    if (this.state.weatherMode !== 'game' && this.state.weatherData && this.state.weatherData.temperature !== null) {
+      targetTemp = this.state.weatherData.temperature;
+    } else {
+      // Game mode - náhodná teplota podle sezóny
+      const variance = (Math.random() - 0.5) * 2 * season.tempVariance;
+      targetTemp = season.baseTemp + variance;
+    }
     
     // Heating bonus (každé topení = +5°C, max 3 dny)
     const heatingBonus = Math.min(this.state.heating, 3) * 5;
@@ -2683,6 +2726,65 @@ async backend(functionName, data = null) {
     
     document.getElementById('footer-stats').innerHTML = 
       `Kolonie: ${population} 👥 | Rekord: <span id="footer-best-run">${bestRun}</span>d`;
+  },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // 🌤️ WEATHER MODE SYSTEM
+  // ═══════════════════════════════════════════════════════════════
+  
+  setWeatherMode(mode) {
+    const previousMode = this.state.weatherMode;
+    this.state.weatherMode = mode;
+    localStorage.setItem('doupe_weather_mode', mode);
+    
+    // Update button states
+    const buttons = document.querySelectorAll('.weather-mode-btn');
+    buttons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    
+    // Reset weather data JEN když se ZMĚNÍ mód (ne při opakovaném kliknutí)
+    if (previousMode !== mode) {
+      console.log(`🔄 Weather mode changed: ${previousMode} → ${mode}`);
+      this.state.lastWeatherFetch = 0;
+      this.state.weatherData = null;
+    } else {
+      console.log(`📦 Weather mode already active: ${mode} (keeping cache)`);
+    }
+    
+    // Update widget
+    if (mode === 'game') {
+      this.updateWeatherWidgetGame();
+    } else {
+      this.fetchWeather();
+    }
+    
+    // Log change (only if actually changed)
+    if (previousMode !== mode) {
+      const modeName = mode === 'game' ? 'Herní mód' : mode === 'openmeteo' ? 'Open-Meteo' : 'WeatherXM';
+      this.log(`🌤️ Weather mode: ${modeName}`, 'info');
+      this.showNotification(`🌤️ ${modeName}`);
+    }
+    
+    // Recalculate temperature and update UI
+    this.calculateTemperature();
+    this.render();
+  },
+  
+  updateWeatherWidgetGame() {
+    const widget = document.getElementById('weather-widget');
+    if (!widget) return;
+    
+    // Safety check - pokud seasons ještě není inicializovaný
+    if (!this.seasons || !this.seasons[this.state.season]) {
+      widget.innerHTML = `<span class="weather-icon">🌍</span><span class="weather-info">Načítám...</span>`;
+      return;
+    }
+    
+    const season = this.seasons[this.state.season];
+    widget.innerHTML = `<span class="weather-icon">${season.icon}</span><span class="weather-info">${season.name}: ${season.desc}</span>`;
+    widget.style.cursor = 'default';
+    widget.onclick = null;
   },
   
   // ℹ️ SHOW ABOUT MODAL
@@ -2792,6 +2894,9 @@ async backend(functionName, data = null) {
     this.state.guaranteedStones = 0;
     this.state.fireActive = false; // 🔥
     this.state.fireFuel = 0; // 🔥
+    this.state.weatherMode = localStorage.getItem('doupe_weather_mode') || 'game'; // 🌤️
+    this.state.weatherData = null;
+    this.state.lastWeatherFetch = 0;
     this.state.lastSeasonalThreat = 0;
     this.state.randomThreatCount = 0;
     this.state.maxRandomThreats = 3;
@@ -2838,13 +2943,22 @@ async backend(functionName, data = null) {
     
     this.log('', 'info');
     
+    // 🌤️ WEATHER: Inicializuj widget PŘED render (game mode potřebuje seasons)
+    if (this.state.weatherMode === 'game') {
+      this.updateWeatherWidgetGame();
+    }
+    
     this.render();
     
     // 📂 AUTO-LOAD: Nabídni načtení uložené hry
     this.checkAutoLoad();
     
-    // 🌤️ WEATHER: Načti aktuální počasí pro Nový Bor
-    this.fetchWeather();
+    // 🌤️ WEATHER: Načti externí data (async)
+    if (this.state.weatherMode !== 'game') {
+      setTimeout(() => {
+        this.fetchWeather();
+      }, 100);
+    }
   },
 
   /**
@@ -2896,59 +3010,192 @@ async backend(functionName, data = null) {
   /**
    * 🌤️ FETCH WEATHER
    * 
-   * Načte aktuální počasí pro Nový Bor (CZ) z Open-Meteo API.
-   * Zobrazí ikonu počasí, teplotu a popis v patičce.
+   * Načte počasí podle módu:
+   * - game: zobrazí herní sezónu
+   * - openmeteo: Open-Meteo API (client-side, 10min local cache)
+   * - weatherxm: WeatherXM PRO backend (server-side GLOBÁLNÍ cache 3h pro všechny uživatele)
    * 
    * @returns {Promise<void>}
    * @sideeffects Updates #weather-widget DOM element
    * 
    * @api Open-Meteo (free, no API key needed)
-   * @tested ✅ 2026-02-08
+   * @api WeatherXM PRO (limit 500 calls/měsíc, GLOBÁLNÍ CACHE na serveru)
+   * @tested ✅ 2026-02-10
    */
   async fetchWeather() {
+    const mode = this.state.weatherMode || 'game';
+    
+    // Game mode - zobraz herní sezónu
+    if (mode === 'game') {
+      this.updateWeatherWidgetGame();
+      return;
+    }
+    
+    // 📦 ZOBRAZ LOADING STATE
+    const widget = document.getElementById('weather-widget');
+    if (widget) {
+      widget.innerHTML = `
+        <span class="weather-icon">⏳</span>
+        <span class="weather-info">Načítám počasí...</span>
+      `;
+    }
+    
+    const now = Date.now();
+    
     try {
-      // Nový Bor coordinates
-      const lat = 50.7667;
-      const lon = 14.5333;
-      
-      // Open-Meteo API (free, no key needed)
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=Europe/Prague`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      const temp = Math.round(data.current.temperature_2m);
-      const weatherCode = data.current.weather_code;
-      const windSpeed = Math.round(data.current.wind_speed_10m);
-      
-      // Weather code to emoji + description
-      const weatherInfo = this.getWeatherInfo(weatherCode);
-      
-      // Update widget
-      const widget = document.getElementById('weather-widget');
-      if (widget) {
-        widget.innerHTML = `
-          <span class="weather-icon">${weatherInfo.icon}</span>
-          <span class="weather-info">
-            Nový Bor: ${temp}°C, ${weatherInfo.desc}${windSpeed > 20 ? ' 💨' : ''}
-          </span>
-        `;
+      if (mode === 'openmeteo') {
+        // ═══════════════════════════════════════════════════════════
+        // 🌍 OPEN-METEO (client-side, local cache 10min)
+        // ═══════════════════════════════════════════════════════════
         
-        // Add click handler for detail
-        widget.style.cursor = 'pointer';
-        widget.onclick = () => this.showWeatherDetail(data);
+        // Local cache check (neomezené calls, takže 10min je OK)
+        if (this.state.weatherData && this.state.weatherData.source === 'openmeteo') {
+          if ((now - this.state.lastWeatherFetch) < 600000) { // 10 min
+            console.log(`📦 Using cached openmeteo data (${Math.round((now - this.state.lastWeatherFetch) / 60000)} min old)`);
+            this.updateWeatherWidgetExternal();
+            return;
+          }
+        }
+        
+        console.log('🌍 Fetching Open-Meteo data (client-side)...');
+        
+        const lat = 50.7667;
+        const lon = 14.5333;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=Europe/Prague`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        this.state.weatherData = {
+          source: 'openmeteo',
+          temperature: Math.round(data.current.temperature_2m),
+          weatherCode: data.current.weather_code,
+          windSpeed: Math.round(data.current.wind_speed_10m),
+          timestamp: new Date().toISOString(),
+          rawData: data
+        };
+        
+        console.log('✅ Open-Meteo data loaded:', this.state.weatherData);
+        
+      } else if (mode === 'weatherxm') {
+        // ═══════════════════════════════════════════════════════════
+        // 📡 WEATHERXM PRO (server-side, GLOBÁLNÍ cache 3h)
+        // ═══════════════════════════════════════════════════════════
+        
+        console.log('📡 Calling WeatherXM backend (global cache)...');
+        const response = await this.backend('fetchWeatherXM');
+        
+        console.log('📡 Backend response:', response);
+        
+        if (!response) {
+          throw new Error('Backend vrátil null response');
+        }
+        
+        if (!response.success) {
+          throw new Error(response.error || 'Backend returned success: false');
+        }
+        
+        if (!response.data) {
+          throw new Error('Backend response missing data field');
+        }
+        
+        // Validace dat
+        if (response.data.temperature === null || response.data.temperature === undefined) {
+          console.warn('⚠️ Temperature is null/undefined:', response.data);
+        }
+        
+        this.state.weatherData = {
+          source: 'weatherxm',
+          temperature: response.data.temperature,
+          humidity: response.data.humidity,
+          pressure: response.data.pressure,
+          windSpeed: response.data.windSpeed,
+          windDirection: response.data.windDirection,
+          precipitation: response.data.precipitation,
+          timestamp: response.data.timestamp,
+          stationName: response.data.stationName,
+          stationQuality: response.data.stationQuality
+        };
+        
+        console.log('✅ WeatherXM data loaded:', this.state.weatherData);
       }
       
+      this.state.lastWeatherFetch = now;
+      this.updateWeatherWidgetExternal();
+      
     } catch(error) {
-      console.error('Weather fetch failed:', error);
+      console.error('❌ Weather fetch failed:', error);
+      console.error('❌ Error details:', {
+        mode: mode,
+        message: error.message,
+        stack: error.stack
+      });
+      
       const widget = document.getElementById('weather-widget');
       if (widget) {
         widget.innerHTML = `
-          <span class="weather-icon">❓</span>
-          <span class="weather-info">Počasí nedostupné</span>
+          <span class="weather-icon">❌</span>
+          <span class="weather-info">Chyba: ${error.message}</span>
         `;
       }
     }
+  },
+  
+  updateWeatherWidgetExternal() {
+    const widget = document.getElementById('weather-widget');
+    if (!widget || !this.state.weatherData) return;
+    
+    const data = this.state.weatherData;
+    
+    if (data.source === 'openmeteo') {
+      const weatherInfo = this.getWeatherInfo(data.weatherCode);
+      widget.innerHTML = `
+        <span class="weather-icon">${weatherInfo.icon}</span>
+        <span class="weather-info">
+          Nový Bor: ${data.temperature}°C, ${weatherInfo.desc}${data.windSpeed > 20 ? ' 💨' : ''}
+        </span>
+      `;
+    } else if (data.source === 'weatherxm') {
+      const temp = data.temperature !== null ? Math.round(data.temperature) : '?';
+      const humidity = data.humidity !== null ? Math.round(data.humidity) : '?';
+      const stationName = data.stationName || 'WeatherXM';
+      widget.innerHTML = `
+        <span class="weather-icon">📡</span>
+        <span class="weather-info">
+          ${stationName}: ${temp}°C, ${humidity}%
+        </span>
+      `;
+    }
+    
+    widget.style.cursor = 'pointer';
+    widget.onclick = () => this.showWeatherDetail();
+  },
+
+  /**
+   * ⏰ GET TIME AGO
+   * 
+   * Převede timestamp na čitelný "před X minutami/hodinami"
+   * 
+   * @param {string} timestamp - ISO timestamp
+   * @returns {string} Čitelný čas (např. "před 2 hodinami")
+   */
+  getTimeAgo(timestamp) {
+    const now = Date.now();
+    const then = new Date(timestamp).getTime();
+    const diffMs = now - then;
+    const diffMin = Math.floor(diffMs / 60000);
+    
+    if (diffMin < 1) return 'právě teď';
+    if (diffMin === 1) return 'před minutou';
+    if (diffMin < 60) return `před ${diffMin} minutami`;
+    
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours === 1) return 'před hodinou';
+    if (diffHours < 24) return `před ${diffHours} hodinami`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'včera';
+    return `před ${diffDays} dny`;
   },
 
   /**
@@ -3001,11 +3248,9 @@ async backend(functionName, data = null) {
    * @param {Object} data - Weather data from API
    * @returns {void}
    */
-  showWeatherDetail(data) {
-    const temp = Math.round(data.current.temperature_2m);
-    const weatherCode = data.current.weather_code;
-    const windSpeed = Math.round(data.current.wind_speed_10m);
-    const weatherInfo = this.getWeatherInfo(weatherCode);
+  showWeatherDetail() {
+    const data = this.state.weatherData;
+    if (!data) return;
     
     this.openModal();
     
@@ -3013,42 +3258,117 @@ async backend(functionName, data = null) {
     modal.className = 'modal-overlay';
     modal.id = 'weather-modal';
     
-    modal.innerHTML = `
-      <div class="modal-content">
-        <div class="modal-title">🌤️ POČASÍ V NOVÉM BORU</div>
-        
-        <div style="text-align: center; margin: 30px 0;">
-          <div style="font-size: 64px; margin-bottom: 10px;">
-            ${weatherInfo.icon}
-          </div>
-          <div style="font-size: 48px; font-weight: 700; color: #d4a574; margin-bottom: 5px;">
-            ${temp}°C
-          </div>
-          <div style="font-size: 18px; color: #b89968; text-transform: capitalize;">
-            ${weatherInfo.desc}
-          </div>
-        </div>
-        
-        <div style="text-align: left; color: #b89968; line-height: 1.8; margin: 20px 0;">
-          <p style="margin-bottom: 8px;">
-            💨 <strong>Vítr:</strong> ${windSpeed} km/h
-          </p>
-          <p style="margin-bottom: 8px;">
-            📍 <strong>Lokace:</strong> Nový Bor, Česká republika
-          </p>
-          <p style="font-size: 11px; opacity: 0.7; margin-top: 15px;">
-            Data z Open-Meteo API • Aktualizováno: ${new Date().toLocaleTimeString('cs-CZ')}
-          </p>
-        </div>
-        
-        <div class="modal-buttons">
-          <button class="modal-btn modal-btn-secondary" onclick="game.closeModal('weather-modal')">
-            Zavřít
-          </button>
-        </div>
-      </div>
-    `;
+    let content = '';
     
+    if (data.source === 'openmeteo') {
+      const weatherInfo = this.getWeatherInfo(data.weatherCode);
+      content = `
+        <div class="modal-content">
+          <div class="modal-title">🌍 OPEN-METEO</div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <div style="font-size: 64px; margin-bottom: 10px;">
+              ${weatherInfo.icon}
+            </div>
+            <div style="font-size: 48px; font-weight: 700; color: #d4a574; margin-bottom: 5px;">
+              ${data.temperature}°C
+            </div>
+            <div style="font-size: 18px; color: #b89968; text-transform: capitalize;">
+              ${weatherInfo.desc}
+            </div>
+          </div>
+          
+          <div style="text-align: left; color: #b89968; line-height: 1.8; margin: 20px 0;">
+            <p style="margin-bottom: 8px;">
+              💨 <strong>Vítr:</strong> ${data.windSpeed} km/h
+            </p>
+            <p style="margin-bottom: 8px;">
+              📍 <strong>Lokace:</strong> Nový Bor, Česká republika
+            </p>
+            <p style="font-size: 11px; opacity: 0.7; margin-top: 15px;">
+              Data z Open-Meteo API • ${this.getTimeAgo(data.timestamp)}
+            </p>
+            ${this.state.lastWeatherFetch > 0 ? `
+              <p style="font-size: 10px; opacity: 0.6; margin-top: 5px; color: #7bc876;">
+                📦 Další aktualizace za ${Math.round((600000 - (Date.now() - this.state.lastWeatherFetch)) / 60000)} min (cache: 10min)
+              </p>
+            ` : ''}
+          </div>
+          
+          <div class="modal-buttons">
+            <button class="modal-btn modal-btn-secondary" onclick="game.closeModal('weather-modal')">
+              Zavřít
+            </button>
+          </div>
+        </div>
+      `;
+    } else if (data.source === 'weatherxm') {
+      const temp = data.temperature !== null ? Math.round(data.temperature) : 'N/A';
+      const humidity = data.humidity !== null ? Math.round(data.humidity) : 'N/A';
+      const pressure = data.pressure !== null ? Math.round(data.pressure) : 'N/A';
+      const windSpeed = data.windSpeed !== null ? Math.round(data.windSpeed) : 'N/A';
+      const windDir = data.windDirection !== null ? Math.round(data.windDirection) : 'N/A';
+      const precip = data.precipitation !== null ? data.precipitation.toFixed(1) : 'N/A';
+      const stationName = data.stationName || 'WeatherXM Station';
+      const quality = data.stationQuality !== null ? Math.round(data.stationQuality * 100) : null;
+      
+      content = `
+        <div class="modal-content">
+          <div class="modal-title">📡 WEATHERXM PRO</div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <div style="font-size: 64px; margin-bottom: 10px;">
+              📡
+            </div>
+            <div style="font-size: 48px; font-weight: 700; color: #d4a574; margin-bottom: 5px;">
+              ${temp}°C
+            </div>
+            <div style="font-size: 16px; color: #b89968;">
+              ${stationName}
+            </div>
+            ${quality !== null ? `
+              <div style="font-size: 12px; color: #7bc876; margin-top: 5px;">
+                📊 Kvalita dat: ${quality}%
+              </div>
+            ` : ''}
+          </div>
+          
+          <div style="text-align: left; color: #b89968; line-height: 1.8; margin: 20px 0;">
+            <p style="margin-bottom: 8px;">
+              🌡️ <strong>Teplota:</strong> ${temp}°C
+            </p>
+            <p style="margin-bottom: 8px;">
+              💧 <strong>Vlhkost:</strong> ${humidity}%
+            </p>
+            <p style="margin-bottom: 8px;">
+              🔽 <strong>Tlak:</strong> ${pressure} hPa
+            </p>
+            <p style="margin-bottom: 8px;">
+              💨 <strong>Vítr:</strong> ${windSpeed} km/h (${windDir}°)
+            </p>
+            <p style="margin-bottom: 8px;">
+              🌧️ <strong>Srážky:</strong> ${precip} mm/h
+            </p>
+            <p style="font-size: 11px; opacity: 0.7; margin-top: 15px;">
+              Data z WeatherXM PRO • ${this.getTimeAgo(data.timestamp)}
+            </p>
+            ${this.state.lastWeatherFetch > 0 ? `
+              <p style="font-size: 10px; opacity: 0.6; margin-top: 5px; color: #7bc876;">
+                📦 Další aktualizace za ${Math.round((10800000 - (Date.now() - this.state.lastWeatherFetch)) / 60000)} min (cache: 3h)
+              </p>
+            ` : ''}
+          </div>
+          
+          <div class="modal-buttons">
+            <button class="modal-btn modal-btn-secondary" onclick="game.closeModal('weather-modal')">
+              Zavřít
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    
+    modal.innerHTML = content;
     document.body.appendChild(modal);
   },
 
@@ -5019,4 +5339,3 @@ window.onload = () => game.init();
 </script>
 </body>
 </html>
-

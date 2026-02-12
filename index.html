@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -1494,7 +1495,7 @@ button:active {
       <span class="weather-mode-selector">
         <button class="weather-mode-btn active" data-mode="game" onclick="game.setWeatherMode('game')" title="Hra">🎮</button>
         <button class="weather-mode-btn" data-mode="openmeteo" onclick="game.setWeatherMode('openmeteo')" title="Open-Meteo">🌍</button>
-        <button class="weather-mode-btn" data-mode="weatherxm" onclick="game.setWeatherMode('weatherxm')" title="Weather Station">📡</button>
+        <button class="weather-mode-btn" data-mode="weatherxm" onclick="game.setWeatherMode('weatherxm')" title="WeatherXM">📡</button>
       </span>
       <!-- 🔥 FIRE INDICATOR -->
       <span class="fire-indicator inactive" id="fire-indicator">
@@ -1582,7 +1583,7 @@ button:active {
        ═══════════════════════════════════════════════════════════════ -->
   <div id="footer">
     <div>
-      <span class="footer-title">🏠 DOUPĚ v2.11m</span>
+      <span class="footer-title">🏠 DOUPĚ v2.0</span>
       <br>
       <!-- 🌤️ WEATHER WIDGET -->
       <span class="weather-widget" id="weather-widget">
@@ -2835,11 +2836,18 @@ async backend(functionName, data = null) {
       console.log(`📦 Weather mode already active: ${mode} (keeping cache)`);
     }
     
-    // Update widget - AWAIT pro external weather!
+    // Update widget
     if (mode === 'game') {
       this.updateWeatherWidgetGame();
+      // Immediate update for game mode
+      this.calculateTemperature();
+      this.render();
     } else {
-      await this.fetchWeather();  // ⏳ Počkat na načtení dat!
+      // Wait for weather data before calculating temperature
+      await this.fetchWeather();
+      // Now calculate with fresh data
+      this.calculateTemperature();
+      this.render();
     }
     
     // Log change (only if actually changed)
@@ -2848,10 +2856,6 @@ async backend(functionName, data = null) {
       this.log(`🌤️ Weather mode: ${modeName}`, 'info');
       this.showNotification(`🌤️ ${modeName}`);
     }
-    
-    // Recalculate temperature and update UI - TEPRVE PO načtení dat!
-    this.calculateTemperature();
-    this.render();
   },
   
   updateWeatherWidgetGame() {
@@ -2892,16 +2896,7 @@ async backend(functionName, data = null) {
             🎯 <strong>Cíl:</strong> Udržet kolonii naživu co nejdéle. 
             Sbírej suroviny, craftuj nástroje, přijímej obyvatele a překonávej roční období.
           </p>
-          <p>v. 2.11m</p>
-          <p style="margin-bottom: 15px;">
-            🔥 <strong>Nové features</strong><br>
-            • Potvrzení restartu hry a stats<br>
-            • Hrozby a souboje - piškvorky<br>
-            • Přidána atmosferická hudba a controls<br>
-            • Přepínání mezi mody počasí<br>
-            • Nová patička
-          </p>
-          <p>v. 2.0</p>
+          
           <p style="margin-bottom: 15px;">
             🔥 <strong>Mechaniky:</strong><br>
             • Sezónní změny každých 15 dní<br>
@@ -2913,9 +2908,8 @@ async backend(functionName, data = null) {
           
           <p style="margin-bottom: 15px;">
             👤 <strong>Autor:</strong> Ondrex's Ember 🔥<br>
-            📅 <strong>Verze:</strong> 2.11m (Únor 2026)<br>
-            🔧 <strong>Tech:</strong> Google Apps Script + Sheets<br>
-            📬 <strong>Bugs</strong> Opinions? Hate? Contact me by mail: ember.pan@gmail.com
+            📅 <strong>Verze:</strong> 2.0 (Únor 2026)<br>
+            🔧 <strong>Tech:</strong> Google Apps Script + Sheets
           </p>
           
           <p style="font-size: 11px; opacity: 0.7; margin-top: 20px;">
@@ -3041,9 +3035,6 @@ async backend(functionName, data = null) {
       this.updateWeatherWidgetGame();
     }
     
-    // 🌡️ Vypočítej počáteční teplotu (před prvním render)
-    this.calculateTemperature();
-    
     this.render();
     
     // 📂 AUTO-LOAD: Nabídni načtení uložené hry
@@ -3109,7 +3100,7 @@ async backend(functionName, data = null) {
    * Načte počasí podle módu:
    * - game: zobrazí herní sezónu
    * - openmeteo: Open-Meteo API (client-side, 10min local cache)
-   * - weatherxm: Weather Station (server-side GLOBÁLNÍ cache 3h pro všechny uživatele)
+   * - weatherxm: WeatherXM PRO backend (server-side GLOBÁLNÍ cache 3h pro všechny uživatele)
    * 
    * @returns {Promise<void>}
    * @sideeffects Updates #weather-widget DOM element
@@ -3149,9 +3140,6 @@ async backend(functionName, data = null) {
           if ((now - this.state.lastWeatherFetch) < 600000) { // 10 min
             console.log(`📦 Using cached openmeteo data (${Math.round((now - this.state.lastWeatherFetch) / 60000)} min old)`);
             this.updateWeatherWidgetExternal();
-            // ⚠️ KRITICKÉ: Přepočítat teplotu a aktualizovat UI (pro init nebo setWeatherMode)
-            this.calculateTemperature();
-            this.render();
             return;
           }
         }
@@ -3216,15 +3204,11 @@ async backend(functionName, data = null) {
           stationQuality: response.data.stationQuality
         };
         
-        console.log('✅ Weather Station data loaded:', this.state.weatherData);
+        console.log('✅ WeatherXM data loaded:', this.state.weatherData);
       }
       
       this.state.lastWeatherFetch = now;
       this.updateWeatherWidgetExternal();
-      
-      // ⚠️ Přepočítat teplotu s novými daty a aktualizovat UI
-      this.calculateTemperature();
-      this.render();
       
     } catch(error) {
       console.error('❌ Weather fetch failed:', error);
@@ -3417,7 +3401,7 @@ async backend(functionName, data = null) {
       
       content = `
         <div class="modal-content">
-          <div class="modal-title">📡 WEATHER STATION</div>
+          <div class="modal-title">📡 WEATHERXM PRO</div>
           
           <div style="text-align: center; margin: 30px 0;">
             <div style="font-size: 64px; margin-bottom: 10px;">
@@ -3453,7 +3437,7 @@ async backend(functionName, data = null) {
               🌧️ <strong>Srážky:</strong> ${precip} mm/h
             </p>
             <p style="font-size: 11px; opacity: 0.7; margin-top: 15px;">
-              Data z Weather Station • ${this.getTimeAgo(data.timestamp)}
+              Data z WeatherXM PRO • ${this.getTimeAgo(data.timestamp)}
             </p>
             ${this.state.lastWeatherFetch > 0 ? `
               <p style="font-size: 10px; opacity: 0.6; margin-top: 5px; color: #7bc876;">
@@ -4443,65 +4427,6 @@ async backend(functionName, data = null) {
   },
 
   // 💾 SAVE & LOAD GAME
-  saveGame() {
-    try {
-      const saveData = JSON.stringify(this.state);
-      
-      // Save via backend (Apps Script) or localStorage (standalone)
-      if (this.isAppsScript) {
-        this.backend('saveGameState', saveData)
-          .then((response) => {
-            if (response.success) {
-              this.log('💾 ' + response.message, 'success');
-              this.showNotification('💾 Hra uložena!');
-            } else {
-              throw new Error(response.message);
-            }
-          })
-          .catch((error) => {
-            this.log('❌ Chyba při ukládání: ' + error, 'danger');
-          });
-      } else {
-        // Standalone - localStorage
-        localStorage.setItem('doupe_save', saveData);
-        this.log('💾 Hra uložena (lokálně)', 'success');
-        this.showNotification('💾 Hra uložena!');
-      }
-      
-      // GA Tracking
-      this.track('game_saved', {
-        day: this.state.day,
-        season: this.seasons[this.state.season].name,
-        population: this.state.entities.length + 1
-      });
-      
-    } catch(e) {
-      this.log('❌ Nepodařilo se uložit hru', 'danger');
-      console.error('Save error:', e);
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ⚠️ CRITICAL FUNCTION - SAVE/LOAD SYSTEM
-  // ═══════════════════════════════════════════════════════════════
-
-  /**
-   * 💾 SAVE GAME
-   * 
-   * Ukládá aktuální stav hry (this.state) do backend nebo localStorage.
-   * Funguje v Apps Script režimu (backend API) i standalone (localStorage).
-   * Zobrazuje notification a loguje úspěch/chybu.
-   * 
-   * @returns {void}
-   * @fires game.backend - V Apps Script režimu
-   * @fires game.track - GA4 tracking event 'game_saved'
-   * @sideeffects Ukládá do localStorage nebo volá backend API
-   * 
-   * @example
-   * game.saveGame(); // Uloží současný stav
-   * 
-   * @tested ✅ 2026-02-08 - Works in both modes
-   */
   saveGame() {
     try {
       const saveData = JSON.stringify(this.state);
@@ -5632,7 +5557,32 @@ async backend(functionName, data = null) {
 
     class AtmosphericMusic {
       constructor() {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // 📱 DEVICE DETECTION - Mobile vs Desktop
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                      || (window.innerWidth <= 768);
+        
+        // 🎚️ AUDIO SETTINGS podle zařízení
+        const audioSettings = isMobile ? {
+          sampleRate: 22050,    // 📱 Mobil: nižší sample rate
+          latencyHint: 'playback',
+          bufferDuration: 8     // 8s buffer proti praskání
+        } : {
+          sampleRate: 44100,    // 💻 PC: plný zvuk
+          latencyHint: 'playback',
+          bufferDuration: 4     // 4s buffer
+        };
+        
+        console.log(`🎵 Audio: ${isMobile ? '📱 Mobile' : '💻 Desktop'} mode - ${audioSettings.sampleRate}Hz, ${audioSettings.bufferDuration}s buffer`);
+        
+        // Create AudioContext s adaptive settings
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+          sampleRate: audioSettings.sampleRate,
+          latencyHint: audioSettings.latencyHint
+        });
+        
+        this.bufferDuration = audioSettings.bufferDuration;
+        this.isMobile = isMobile;
+        
         this.masterGain = this.audioContext.createGain();
         
         const savedVolume = localStorage.getItem('musicVolume') || 30;
@@ -6135,7 +6085,21 @@ async backend(functionName, data = null) {
         }
         
         this.audioContext.close();
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // 🎚️ Recreate AudioContext s adaptive settings (same as constructor)
+        const audioSettings = this.isMobile ? {
+          sampleRate: 22050,
+          latencyHint: 'playback'
+        } : {
+          sampleRate: 44100,
+          latencyHint: 'playback'
+        };
+        
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+          sampleRate: audioSettings.sampleRate,
+          latencyHint: audioSettings.latencyHint
+        });
+        
         this.masterGain = this.audioContext.createGain();
         const savedVolume = localStorage.getItem('musicVolume') || 30;
         this.masterGain.gain.value = savedVolume / 100;

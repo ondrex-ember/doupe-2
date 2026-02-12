@@ -3213,7 +3213,7 @@ async backend(functionName, data = null) {
           stationQuality: response.data.stationQuality
         };
         
-        console.log('✅ WeatherXM data loaded:', this.state.weatherData);
+        console.log('✅ Weather Station data loaded:', this.state.weatherData);
       }
       
       this.state.lastWeatherFetch = now;
@@ -3410,7 +3410,7 @@ async backend(functionName, data = null) {
       
       content = `
         <div class="modal-content">
-          <div class="modal-title">📡 WEATHERXM PRO</div>
+          <div class="modal-title">📡 WEATHER STATION</div>
           
           <div style="text-align: center; margin: 30px 0;">
             <div style="font-size: 64px; margin-bottom: 10px;">
@@ -3430,23 +3430,23 @@ async backend(functionName, data = null) {
           </div>
           
           <div style="text-align: left; color: #b89968; line-height: 1.8; margin: 20px 0;">
-            <p style="margin-bottom: 8px;">
+            <p style="margin-bottom: 10px;">
               🌡️ <strong>Teplota:</strong> ${temp}°C
             </p>
-            <p style="margin-bottom: 8px;">
+            <p style="margin-bottom: 10px;">
               💧 <strong>Vlhkost:</strong> ${humidity}%
             </p>
-            <p style="margin-bottom: 8px;">
+            <p style="margin-bottom: 10px;">
               🔽 <strong>Tlak:</strong> ${pressure} hPa
             </p>
-            <p style="margin-bottom: 8px;">
+            <p style="margin-bottom: 10px;">
               💨 <strong>Vítr:</strong> ${windSpeed} km/h (${windDir}°)
             </p>
-            <p style="margin-bottom: 8px;">
+            <p style="margin-bottom: 10px;">
               🌧️ <strong>Srážky:</strong> ${precip} mm/h
             </p>
             <p style="font-size: 11px; opacity: 0.7; margin-top: 15px;">
-              Data z WeatherXM PRO • ${this.getTimeAgo(data.timestamp)}
+              Data z Weather Station • ${this.getTimeAgo(data.timestamp)}
             </p>
             ${this.state.lastWeatherFetch > 0 ? `
               <p style="font-size: 10px; opacity: 0.6; margin-top: 5px; color: #7bc876;">
@@ -6416,6 +6416,7 @@ async backend(functionName, data = null) {
 
 </body>
 </html>
+
 
 
 

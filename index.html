@@ -6265,10 +6265,10 @@ async backend(functionName, data = null) {
         const attenuator = this.audioContext.createGain(); // Extra gain stage pro jemné doladění
         
         osc.type = 'sine';
-        osc.frequency.value = 580;
+        osc.frequency.value = 480;
         
         // První gain stage - lineární fade out (plynulejší)
-        gain.gain.setValueAtTime(0.01, time); // Sníženo z 0.08 na 0.05
+        gain.gain.setValueAtTime(0.001, time); // Sníženo z 0.08 na 0.05
         gain.gain.linearRampToValueAtTime(0, time + 1.5); // Lineární místo exponenciálního
         
         // Druhý gain stage - globální attenuator
@@ -6416,6 +6416,7 @@ async backend(functionName, data = null) {
 
 </body>
 </html>
+
 
 
 

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -1664,7 +1663,7 @@ button:active {
 </div>
 
 <script>
-const game = {
+var game = {
 
   // ═══════════════════════════════════════════════════════════════
   // ⚠️ CRITICAL FUNCTION - MODAL MANAGEMENT
@@ -1685,12 +1684,12 @@ const game = {
    * 
    * @see closeModal() - Pro odemknutí scrollu
    */
-  openModal() {
+  openModal: function() {
     // Lock body scroll when modal opens
     document.body.classList.add('modal-open');
     // Store scroll position
     this._scrollY = window.scrollY;
-    document.body.style.top = `-${this._scrollY}px`;
+    document.body.style.top = '-' + (this._scrollY) + 'px';
   },
 
   /**
@@ -1708,9 +1707,9 @@ const game = {
    * 
    * @see openModal() - Pro zamknutí scrollu
    */
-  closeModal(modalId) {
+  closeModal: function(modalId) {
     // Remove modal
-    const modal = document.getElementById(modalId);
+    var modal = document.getElementById(modalId);
     if (modal) modal.remove();
     
     // Unlock body scroll
@@ -1730,7 +1729,7 @@ const game = {
   // ⚠️ IMPORTANT: Replace with your actual Apps Script Web App URL
   BACKEND_API_URL: 'https://script.google.com/macros/s/AKfycbwWqpMUKiT6iS6NwVYP7GM2MBD1IqCMhLToAhVVPtsl2IIvuk6IoHuFlzlTtVVY551v/exec',
   
-  get isAppsScript() {
+  isAppsScript: function() {
     // Check if we're running in Apps Script environment
     return typeof google !== 'undefined' && 
            google.script && 
@@ -1750,12 +1749,13 @@ const game = {
 
 // V index.html najdi funkci backend() a NAHRAĎ JI celou tímto:
 
-async backend(functionName, data = null) {
+backend: function(functionName, data) {
+  data = data || null;
   // Apps Script environment - use google.script.run (direct)
-  if (this.isAppsScript) {
-    return new Promise((resolve, reject) => {
+  if (this.isAppsScript()) {
+    return new Promise(function(resolve, reject) {
       try {
-        const runner = google.script.run
+        var runner = google.script.run
           .withSuccessHandler(resolve)
           .withFailureHandler(reject);
         
@@ -1771,23 +1771,23 @@ async backend(functionName, data = null) {
   }
   
   // GitHub environment - USE JSONP (CORS workaround)
-  return new Promise((resolve, reject) => {
+  return new Promise(function(resolve, reject) {
     try {
-      console.log(`🌐 JSONP call: ${functionName}`, data ? `with data` : 'no data');
+      console.log('🌐 JSONP call: ' + (functionName) + '', data ? 'with data' : 'no data');
       
       // Timeout pro detekci zatuhlého volání
-      const timeout = setTimeout(() => {
-        console.error(`⏱️ JSONP timeout after 30s: ${functionName}`);
+      var timeout = setTimeout(function() {
+        console.error('⏱️ JSONP timeout after 30s: ' + (functionName) + '');
         cleanup();
-        reject(new Error(`API timeout after 30s: ${functionName}`));
+        reject(new Error('API timeout after 30s: ' + (functionName) + ''));
       }, 30000); // 30s timeout
       
       // Generate unique callback name
-      const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      var callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       
-      let script;
+      var script;
       
-      const cleanup = () => {
+      var cleanup = function() {
         clearTimeout(timeout);
         if (window[callbackName]) {
           delete window[callbackName];
@@ -1799,26 +1799,26 @@ async backend(functionName, data = null) {
       
       // Create global callback function
       window[callbackName] = function(response) {
-        console.log(`✅ JSONP response from ${functionName}:`, response);
+        console.log('✅ JSONP response from ' + (functionName) + ':', response);
         cleanup();
         resolve(response);
       };
       
       // Build URL with params
-      const params = new URLSearchParams({
+      var params = new URLSearchParams({
         action: functionName,
         data: JSON.stringify(data || {}),
         callback: callbackName
       });
       
-      const url = `${this.BACKEND_API_URL}?${params}`;
-      console.log(`📡 JSONP URL:`, url.substring(0, 150) + '...');
+      var url = '' + (this.BACKEND_API_URL) + '?' + (params) + '';
+      console.log('📡 JSONP URL:', url.substring(0, 150) + '...');
       
       // Create script tag for JSONP
       script = document.createElement('script');
       script.src = url;
       script.onerror = function(e) {
-        console.error(`❌ JSONP script load failed: ${functionName}`, e);
+        console.error('❌ JSONP script load failed: ' + (functionName) + '', e);
         cleanup();
         
         // Return mock success for non-critical functions
@@ -1827,7 +1827,7 @@ async backend(functionName, data = null) {
         } else if (functionName === 'logTransaction') {
           resolve({ success: true, message: 'Transaction logging skipped (API unavailable)' });
         } else {
-          reject(new Error(`JSONP script load failed: ${functionName}`));
+          reject(new Error('JSONP script load failed: ' + (functionName) + ''));
         }
       };
       
@@ -1835,7 +1835,7 @@ async backend(functionName, data = null) {
       document.body.appendChild(script);
       
     } catch(error) {
-      console.error(`❌ JSONP call exception:`, error);
+      console.error('❌ JSONP call exception:', error);
       reject(error);
     }
   });
@@ -2170,7 +2170,7 @@ async backend(functionName, data = null) {
     {
       id: 'nothing',
       chance: 0.15,
-      message: '...ticho a prázdnota...'
+      message: '… ticho a prázdnota …'
     }
   ],
 
@@ -2360,16 +2360,16 @@ async backend(functionName, data = null) {
     enemyIcon: '🗡️',
     gameActive: false,
     
-    init(threat) {
+    init: function(threat) {
       this.currentThreat = threat;
       this.size = threat.boardSize || 8;
       this.playerIcon = threat.playerIcon;
       this.enemyIcon = threat.enemyIcon;
-      this.board = Array(this.size).fill(null).map(() => Array(this.size).fill(null));
+      this.board = Array(this.size).fill(null).map(function() { return Array(this.size).fill(null); });
       this.gameActive = true;
     },
     
-    makeMove(row, col) {
+    makeMove: function(row, col) {
       if (!this.gameActive || this.board[row][col]) return false;
       
       this.board[row][col] = 'player';
@@ -2387,7 +2387,7 @@ async backend(functionName, data = null) {
       }
       
       // AI move
-      setTimeout(() => {
+      setTimeout(function() {
         this.aiMove();
         
         if (this.checkWin('enemy')) {
@@ -2402,9 +2402,9 @@ async backend(functionName, data = null) {
       return true;
     },
     
-    aiMove() {
-      const difficulty = this.currentThreat.aiDifficulty;
-      let move = null;
+    aiMove: function() {
+      var difficulty = this.currentThreat.aiDifficulty;
+      var move = null;
       
       switch(difficulty) {
         case 'easy':
@@ -2427,10 +2427,10 @@ async backend(functionName, data = null) {
       }
     },
     
-    findWinningMove() {
+    findWinningMove: function() {
       // Find move that wins for AI
-      for (let r = 0; r < this.size; r++) {
-        for (let c = 0; c < this.size; c++) {
+      for (var r = 0; r < this.size; r++) {
+        for (var c = 0; c < this.size; c++) {
           if (!this.board[r][c]) {
             this.board[r][c] = 'enemy';
             if (this.checkWin('enemy')) {
@@ -2444,10 +2444,10 @@ async backend(functionName, data = null) {
       return null;
     },
     
-    findBlockingMove() {
+    findBlockingMove: function() {
       // Find move that blocks player from winning
-      for (let r = 0; r < this.size; r++) {
-        for (let c = 0; c < this.size; c++) {
+      for (var r = 0; r < this.size; r++) {
+        for (var c = 0; c < this.size; c++) {
           if (!this.board[r][c]) {
             this.board[r][c] = 'player';
             if (this.checkWin('player')) {
@@ -2461,9 +2461,9 @@ async backend(functionName, data = null) {
       return null;
     },
     
-    findStrategicMove() {
+    findStrategicMove: function() {
       // Prefer center, then adjacent to existing pieces
-      const center = Math.floor(this.size / 2);
+      var center = Math.floor(this.size / 2);
       
       // Try center
       if (!this.board[center][center]) {
@@ -2471,10 +2471,10 @@ async backend(functionName, data = null) {
       }
       
       // Try near existing pieces
-      for (let r = 0; r < this.size; r++) {
-        for (let c = 0; c < this.size; c++) {
+      for (var r = 0; r < this.size; r++) {
+        for (var c = 0; c < this.size; c++) {
           if (this.board[r][c] && this.hasEmptyNeighbor(r, c)) {
-            const empty = this.getEmptyNeighbor(r, c);
+            var empty = this.getEmptyNeighbor(r, c);
             if (empty) return empty;
           }
         }
@@ -2483,26 +2483,26 @@ async backend(functionName, data = null) {
       return this.findRandomMove();
     },
     
-    findRandomMove() {
-      const empty = [];
-      for (let r = 0; r < this.size; r++) {
-        for (let c = 0; c < this.size; c++) {
+    findRandomMove: function() {
+      var empty = [];
+      for (var r = 0; r < this.size; r++) {
+        for (var c = 0; c < this.size; c++) {
           if (!this.board[r][c]) empty.push({ row: r, col: c });
         }
       }
       return empty.length > 0 ? empty[Math.floor(Math.random() * empty.length)] : null;
     },
     
-    findBestMove() {
+    findBestMove: function() {
       // Expert AI - look ahead 2 moves
-      let bestScore = -Infinity;
-      let bestMove = null;
+      var bestScore = -Infinity;
+      var bestMove = null;
       
-      for (let r = 0; r < this.size; r++) {
-        for (let c = 0; c < this.size; c++) {
+      for (var r = 0; r < this.size; r++) {
+        for (var c = 0; c < this.size; c++) {
           if (!this.board[r][c]) {
             this.board[r][c] = 'enemy';
-            const score = this.minimax(1, false, -Infinity, Infinity);
+            var score = this.minimax(1, false, -Infinity, Infinity);
             this.board[r][c] = null;
             
             if (score > bestScore) {
@@ -2516,18 +2516,18 @@ async backend(functionName, data = null) {
       return bestMove || this.findRandomMove();
     },
     
-    minimax(depth, isMaximizing, alpha, beta) {
+    minimax: function(depth, isMaximizing, alpha, beta) {
       if (this.checkWin('enemy')) return 10 - depth;
       if (this.checkWin('player')) return depth - 10;
       if (this.isBoardFull() || depth > 2) return 0;
       
       if (isMaximizing) {
-        let maxScore = -Infinity;
-        for (let r = 0; r < this.size; r++) {
-          for (let c = 0; c < this.size; c++) {
+        var maxScore = -Infinity;
+        for (var r = 0; r < this.size; r++) {
+          for (var c = 0; c < this.size; c++) {
             if (!this.board[r][c]) {
               this.board[r][c] = 'enemy';
-              const score = this.minimax(depth + 1, false, alpha, beta);
+              var score = this.minimax(depth + 1, false, alpha, beta);
               this.board[r][c] = null;
               maxScore = Math.max(score, maxScore);
               alpha = Math.max(alpha, score);
@@ -2537,12 +2537,12 @@ async backend(functionName, data = null) {
         }
         return maxScore;
       } else {
-        let minScore = Infinity;
-        for (let r = 0; r < this.size; r++) {
-          for (let c = 0; c < this.size; c++) {
+        var minScore = Infinity;
+        for (var r = 0; r < this.size; r++) {
+          for (var c = 0; c < this.size; c++) {
             if (!this.board[r][c]) {
               this.board[r][c] = 'player';
-              const score = this.minimax(depth + 1, true, alpha, beta);
+              var score = this.minimax(depth + 1, true, alpha, beta);
               this.board[r][c] = null;
               minScore = Math.min(score, minScore);
               beta = Math.min(beta, score);
@@ -2554,18 +2554,18 @@ async backend(functionName, data = null) {
       }
     },
     
-    hasEmptyNeighbor(r, c) {
-      const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
-      return dirs.some(([dr,dc]) => {
-        const nr = r + dr, nc = c + dc;
+    hasEmptyNeighbor: function(r, c) {
+      var dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+      return dirs.somefunction(([dr,dc]) {
+        var nr = r + dr, nc = c + dc;
         return nr >= 0 && nr < this.size && nc >= 0 && nc < this.size && !this.board[nr][nc];
       });
     },
     
-    getEmptyNeighbor(r, c) {
-      const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
-      for (const [dr, dc] of dirs) {
-        const nr = r + dr, nc = c + dc;
+    getEmptyNeighbor: function(r, c) {
+      var dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+      for (var [dr, dc] of dirs) {
+        var nr = r + dr, nc = c + dc;
         if (nr >= 0 && nr < this.size && nc >= 0 && nc < this.size && !this.board[nr][nc]) {
           return { row: nr, col: nc };
         }
@@ -2573,10 +2573,10 @@ async backend(functionName, data = null) {
       return null;
     },
     
-    checkWin(player) {
+    checkWin: function(player) {
       // Check 5 in a row (horizontal, vertical, diagonal)
-      for (let r = 0; r < this.size; r++) {
-        for (let c = 0; c < this.size; c++) {
+      for (var r = 0; r < this.size; r++) {
+        for (var c = 0; c < this.size; c++) {
           if (this.board[r][c] === player) {
             // Check all 4 directions
             if (this.checkDirection(r, c, 0, 1, player) || // horizontal
@@ -2591,11 +2591,11 @@ async backend(functionName, data = null) {
       return false;
     },
     
-    checkDirection(r, c, dr, dc, player) {
-      let count = 0;
-      for (let i = 0; i < 5; i++) {
-        const nr = r + i * dr;
-        const nc = c + i * dc;
+    checkDirection: function(r, c, dr, dc, player) {
+      var count = 0;
+      for (var i = 0; i < 5; i++) {
+        var nr = r + i * dr;
+        var nc = c + i * dc;
         if (nr < 0 || nr >= this.size || nc < 0 || nc >= this.size || this.board[nr][nc] !== player) {
           return false;
         }
@@ -2604,8 +2604,8 @@ async backend(functionName, data = null) {
       return count === 5;
     },
     
-    isBoardFull() {
-      return this.board.every(row => row.every(cell => cell !== null));
+    isBoardFull: function() {
+      return this.board.every(function(row) { return row.every(function(cell) { return cell !== null; }); });
     }
   },
 
@@ -2619,9 +2619,9 @@ async backend(functionName, data = null) {
           name: '🔪Sbírat materiály',
           duration: 1,
           requires: { knife: 1 },
-          result: () => {
-            const items = ['wood', 'stone', 'fiber', 'mushroom'];
-            const item = items[Math.floor(Math.random() * items.length)];
+          result: function() {
+            var items = ['wood', 'stone', 'fiber', 'mushroom'];
+            var item = items[Math.floor(Math.random() * items.length)];
             return { [item]: Math.floor(Math.random() * 3) + 8 };
           }
         },
@@ -2629,7 +2629,7 @@ async backend(functionName, data = null) {
           name: '🧺Sbírat bobule',
           duration: 1,
           requires: { basket: 1 },
-          result: () => ({ 
+          result: function() { return (; }{ 
             food: Math.floor(Math.random() * 3) + 3,
             water_supply: Math.random() > 0.5 ? Math.floor(Math.random() * 2) + 6 : 0
           })
@@ -2638,7 +2638,7 @@ async backend(functionName, data = null) {
           name: '🕸️Nastražit past',
           duration: 2,
           requires: { trap: 1 },
-          result: () => ({ 
+          result: function() { return (; }{ 
             food: Math.floor(Math.random() * 5) + 4
           })
         },
@@ -2646,7 +2646,7 @@ async backend(functionName, data = null) {
           name: '🥣Sbírat vodu',
           duration: 1,
           requires: { bowl: 1 },
-          result: () => ({ water_supply: Math.floor(Math.random() * 5) + 10 })
+          result: function() { return (; }{ water_supply: Math.floor(Math.random() * 5) + 10 })
         },
         {
           name: '🌳Topit v krbu',
@@ -2654,7 +2654,7 @@ async backend(functionName, data = null) {
           duration: 1,
           requires: { fireplace: 1 },
           isHeating: true,
-          result: () => ({ heating: 1 })
+          result: function() { return (; }{ heating: 1 })
         },
         // 🔥 NEW ACTION - Přiložit do ohně
         {
@@ -2662,13 +2662,13 @@ async backend(functionName, data = null) {
           duration: 1,
           requiresFire: true,
           isFuelAction: true,
-          result: () => ({ fireFuel: 2 })
+          result: function() { return (; }{ fireFuel: 2 })
         },
         {
           name: '⚔️Hlídat doupě',
           duration: 1,
           isGuarding: true,
-          result: () => ({ })
+          result: function() { return (; }{ })
         }
       ]
      },
@@ -2682,7 +2682,7 @@ async backend(functionName, data = null) {
           name: 'Lovit',
           duration: 2,
           requires: { bow: 1 },
-          result: () => ({ 
+          result: function() { return (; }{ 
             food: Math.floor(Math.random() * 6) + 5,
             leather: Math.random() > 0.5 ? 1 : 0
           })
@@ -2692,20 +2692,21 @@ async backend(functionName, data = null) {
  ],
 
   // Google Analytics 4 - Server-Side Tracking
-  track(eventName, params = {}) {
+  track: function(eventName, params) {
+    params = params || {};
     // Server-side tracking přes Google Apps Script backend
     // Measurement Protocol API zajišťuje spolehlivé měření bez cookies/iframe omezení
     try {
-      const clientId = this.state.playerId; // Použij player ID jako client_id
+      var clientId = this.state.playerId; // Použij player ID jako client_id
       
       if (clientId) {
         // Use hybrid backend adapter
         this.backend('trackEvent', { clientId, eventName, params })
-          .then(() => {
+          .then(function() {
             // Success - tiché logování (neruší hráče)
             console.log('✓ GA4 tracked:', eventName);
           })
-          .catch((error) => {
+          .catch(function(error) {
             // Failure - tiché logování (tracking nesmí crashnout hru)
             console.warn('GA4 tracking failed:', error);
           });
@@ -2716,30 +2717,30 @@ async backend(functionName, data = null) {
     }
   },
 
-  calculateTemperature() {
-    const season = this.seasons[this.state.season];
-    let targetTemp;
+  calculateTemperature: function() {
+    var season = this.seasons[this.state.season];
+    var targetTemp;
     
     // Use real weather if available
     if (this.state.weatherMode !== 'game' && this.state.weatherData && this.state.weatherData.temperature !== null) {
       targetTemp = this.state.weatherData.temperature;
     } else {
       // Game mode - náhodná teplota podle sezóny
-      const variance = (Math.random() - 0.5) * 2 * season.tempVariance;
+      var variance = (Math.random() - 0.5) * 2 * season.tempVariance;
       targetTemp = season.baseTemp + variance;
     }
     
     // Heating bonus (každé topení = +5°C, max 3 dny)
-    const heatingBonus = Math.min(this.state.heating, 3) * 5;
+    var heatingBonus = Math.min(this.state.heating, 3) * 5;
     
     // Shelter bonus (lepší izolace = menší rozdíl od ideální teploty)
-    const insulations = this.state.inventory.insulation || 0;
-    const shelterLevel = 1 + (insulations * 0.5);
+    var insulations = this.state.inventory.insulation || 0;
+    var shelterLevel = 1 + (insulations * 0.5);
     
     // Pokud je venku moc chladno/teplo, shelter pomáhá
-    const idealTemp = 15;
-    const diff = targetTemp - idealTemp;
-    const shelteredDiff = diff / shelterLevel;
+    var idealTemp = 15;
+    var diff = targetTemp - idealTemp;
+    var shelteredDiff = diff / shelterLevel;
     
     targetTemp = idealTemp + shelteredDiff + heatingBonus;
     
@@ -2747,7 +2748,7 @@ async backend(functionName, data = null) {
     this.state.shelterLevel = shelterLevel;
   },
 
-  getTemperatureEmoji(temp) {
+  getTemperatureEmoji: function(temp) {
     if (temp < -5) return '🥶';
     if (temp < 5) return '❄️';
     if (temp < 12) return '🌡️';
@@ -2756,11 +2757,11 @@ async backend(functionName, data = null) {
     return '🔥';
   },
 
-  getTemperatureEffects() {
-    const temp = this.state.temperature;
-    let hungerMultiplier = 1;
-    let waterMultiplier = 1;
-    let efficiency = 1;
+  getTemperatureEffects: function() {
+    var temp = this.state.temperature;
+    var hungerMultiplier = 1;
+    var waterMultiplier = 1;
+    var efficiency = 1;
     
     // Příliš chladno
     if (temp < 5) {
@@ -2788,14 +2789,14 @@ async backend(functionName, data = null) {
     return { hungerMultiplier, waterMultiplier, efficiency };
   },
   // 🔥 UPDATE FIRE INDICATOR UI
-  updateFireIndicator() {
-    const indicator = document.getElementById('fire-indicator');
-    const statusText = indicator.querySelector('.fire-status');
+  updateFireIndicator: function() {
+    var indicator = document.getElementById('fire-indicator');
+    var statusText = indicator.querySelector('.fire-status');
     
     if (this.state.fireActive && this.state.fireFuel > 0) {
       indicator.classList.remove('inactive');
       indicator.classList.add('active');
-      statusText.textContent = `Hoří (${this.state.fireFuel}d)`;
+      statusText.textContent = 'Hoří (' + (this.state.fireFuel) + 'd)';
     } else {
       indicator.classList.remove('active');
       indicator.classList.add('inactive');
@@ -2804,36 +2805,37 @@ async backend(functionName, data = null) {
   },
   
   // 📊 UPDATE FOOTER STATS
-  updateFooterStats() {
-    const population = this.state.entities.length + 1; // +1 for player
-    const bestRun = this.state.bestRun;
+  updateFooterStats: function() {
+    var population = this.state.entities.length + 1; // +1 for player
+    var bestRun = this.state.bestRun;
     
     document.getElementById('footer-stats').innerHTML = 
-      `Kolonie: ${population} 👥 | Rekord: <span id="footer-best-run">${bestRun}</span>d`;
+      'Kolonie: ' + (population) + ' 👥 | Rekord: <span id="footer-best-run">' + (bestRun) + '</span>d';
   },
   
   // ═══════════════════════════════════════════════════════════════
   // 🌤️ WEATHER MODE SYSTEM
   // ═══════════════════════════════════════════════════════════════
   
-  async setWeatherMode(mode) {
-    const previousMode = this.state.weatherMode;
+  setWeatherMode: function(mode) {
+    var self = this;
+    var previousMode = this.state.weatherMode;
     this.state.weatherMode = mode;
     localStorage.setItem('doupe_weather_mode', mode);
     
     // Update button states
-    const buttons = document.querySelectorAll('.weather-mode-btn');
-    buttons.forEach(btn => {
+    var buttons = document.querySelectorAll('.weather-mode-btn');
+    buttons.forEach(function(btn) {
       btn.classList.toggle('active', btn.dataset.mode === mode);
     });
     
     // Reset weather data JEN když se ZMĚNÍ mód (ne při opakovaném kliknutí)
     if (previousMode !== mode) {
-      console.log(`🔄 Weather mode changed: ${previousMode} → ${mode}`);
+      console.log('🔄 Weather mode changed: ' + (previousMode) + ' → ' + (mode) + '');
       this.state.lastWeatherFetch = 0;
       this.state.weatherData = null;
     } else {
-      console.log(`📦 Weather mode already active: ${mode} (keeping cache)`);
+      console.log('📦 Weather mode already active: ' + (mode) + ' (keeping cache)');
     }
     
     // Update widget
@@ -2844,45 +2846,46 @@ async backend(functionName, data = null) {
       this.render();
     } else {
       // Wait for weather data before calculating temperature
-      await this.fetchWeather();
-      // Now calculate with fresh data
-      this.calculateTemperature();
-      this.render();
+      this.fetchWeather().then(function() {
+        // Now calculate with fresh data
+        self.calculateTemperature();
+        self.render();
+      });
     }
     
     // Log change (only if actually changed)
     if (previousMode !== mode) {
-      const modeName = mode === 'game' ? 'Herní mód' : mode === 'openmeteo' ? 'Open-Meteo' : 'WeatherXM';
-      this.log(`🌤️ Weather mode: ${modeName}`, 'info');
-      this.showNotification(`🌤️ ${modeName}`);
+      var modeName = mode === 'game' ? 'Herní mód' : mode === 'openmeteo' ? 'Open-Meteo' : 'WeatherXM';
+      this.log('🌤️ Weather mode: ' + (modeName) + '', 'info');
+      this.showNotification('🌤️ ' + (modeName) + '');
     }
   },
   
-  updateWeatherWidgetGame() {
-    const widget = document.getElementById('weather-widget');
+  updateWeatherWidgetGame: function() {
+    var widget = document.getElementById('weather-widget');
     if (!widget) return;
     
     // Safety check - pokud seasons ještě není inicializovaný
     if (!this.seasons || !this.seasons[this.state.season]) {
-      widget.innerHTML = `<span class="weather-icon">🌍</span><span class="weather-info">Načítám...</span>`;
+      widget.innerHTML = '<span class="weather-icon">🌍</span><span class="weather-info">Načítám...</span>';
       return;
     }
     
-    const season = this.seasons[this.state.season];
-    widget.innerHTML = `<span class="weather-icon">${season.icon}</span><span class="weather-info">${season.name}: ${season.desc}</span>`;
+    var season = this.seasons[this.state.season];
+    widget.innerHTML = '<span class="weather-icon">' + (season.icon) + '</span><span class="weather-info">' + (season.name) + ': ' + (season.desc) + '</span>';
     widget.style.cursor = 'default';
     widget.onclick = null;
   },
   
   // ℹ️ SHOW ABOUT MODAL
-  showAbout() {
+  showAbout: function() {
     this.openModal();
     
-    const modal = document.createElement('div');
+    var modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'about-modal';
     
-    modal.innerHTML = `
+    modal.innerHTML = '
       <div class="modal-content">
         <div class="modal-title">ℹ️ O HŘE DOUPĚ</div>
         
@@ -2933,7 +2936,7 @@ async backend(functionName, data = null) {
           </button>
         </div>
       </div>
-    `;
+    ';
     
     document.body.appendChild(modal);
   },
@@ -2957,13 +2960,13 @@ async backend(functionName, data = null) {
    * @sideeffects Creates player ID, loads localStorage data, logs to game log
    * 
    * @example
-   * window.onload = () => game.init(); // Volá se automaticky
+   * window.onload = function() { return game.init(); }; // Volá se automaticky
    * 
    * @tested ✅ 2026-02-08 - Works in both modes
    */
-  init() {
+  init: function() {
     // Player ID systém
-    let playerId = localStorage.getItem('doupe_player_id');
+    var playerId = localStorage.getItem('doupe_player_id');
     if (!playerId) {
       playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       localStorage.setItem('doupe_player_id', playerId);
@@ -3000,8 +3003,8 @@ async backend(functionName, data = null) {
     this.state.unlockedRecipes = ['stick', 'rope', 'bowl', 'trap', 'basket'];
     
     // 🌐 Environment Detection
-    const environment = this.isAppsScript ? 'Apps Script (Full Features)' : 'Standalone (Local Save)';
-    console.log(`🎮 Doupě 2 - Running in: ${environment}`);
+    var environment = this.isAppsScript() ? 'Apps Script (Full Features)' : 'Standalone (Local Save)';
+    console.log('🎮 Doupě 2 - Running in: ' + (environment) + '');
     
     // GA4 Tracking - Page View
     this.track('page_view', {
@@ -3033,7 +3036,7 @@ async backend(functionName, data = null) {
     this.log('💰 EKONOMIKA: Prodávej suroviny 🟡 za zlato → Kup jídlo/vodu 🏷️. Risk vs. reward!', 'success');
     
     // Environment indicator
-    if (!this.isAppsScript) {
+    if (!this.isAppsScript()) {
       this.log('⚠️ Public message: Save/Load games funguje. Nové features. Plné funkce, enjoy:-).', 'warning');
     }
     
@@ -3051,7 +3054,7 @@ async backend(functionName, data = null) {
     
     // 🌤️ WEATHER: Načti externí data (async)
     if (this.state.weatherMode !== 'game') {
-      setTimeout(() => {
+      setTimeout(function() {
         this.fetchWeather();
       }, 100);
     }
@@ -3068,21 +3071,21 @@ async backend(functionName, data = null) {
    * 
    * @tested ✅ 2026-02-08
    */
-  checkAutoLoad() {
+  checkAutoLoad: function() {
     // Počkej až se UI vykreslí
-    setTimeout(() => {
+    setTimeout(function() {
       // Zkontroluj jestli existuje save
-      let hasSave = false;
-      let saveData = null;
+      var hasSave = false;
+      var saveData = null;
       
-      if (this.isAppsScript) {
+      if (this.isAppsScript()) {
         // V Apps Script režimu zkontroluj backend
         // (zatím necháme na manuálním načtení, protože async)
         console.log('🌐 Apps Script mode - auto-load skipped (use manual load)');
         return;
       } else {
         // Standalone - zkontroluj localStorage
-        const saved = localStorage.getItem('doupe_save');
+        var saved = localStorage.getItem('doupe_save');
         if (saved) {
           try {
             saveData = JSON.parse(saved);
@@ -3119,7 +3122,7 @@ async backend(functionName, data = null) {
    * @tested ✅ 2026-02-10
    */
   async fetchWeather() {
-    const mode = this.state.weatherMode || 'game';
+    var mode = this.state.weatherMode || 'game';
     
     // Game mode - zobraz herní sezónu
     if (mode === 'game') {
@@ -3128,15 +3131,15 @@ async backend(functionName, data = null) {
     }
     
     // 📦 ZOBRAZ LOADING STATE
-    const widget = document.getElementById('weather-widget');
+    var widget = document.getElementById('weather-widget');
     if (widget) {
-      widget.innerHTML = `
+      widget.innerHTML = '
         <span class="weather-icon">⏳</span>
         <span class="weather-info">Načítám počasí...</span>
-      `;
+      ';
     }
     
-    const now = Date.now();
+    var now = Date.now();
     
     try {
       if (mode === 'openmeteo') {
@@ -3147,7 +3150,7 @@ async backend(functionName, data = null) {
         // Local cache check (neomezené calls, takže 10min je OK)
         if (this.state.weatherData && this.state.weatherData.source === 'openmeteo') {
           if ((now - this.state.lastWeatherFetch) < 600000) { // 10 min
-            console.log(`📦 Using cached openmeteo data (${Math.round((now - this.state.lastWeatherFetch) / 60000)} min old)`);
+            console.log('📦 Using cached openmeteo data (' + (Math.round((now - this.state.lastWeatherFetch) / 60000)) + ' min old)');
             this.updateWeatherWidgetExternal();
             return;
           }
@@ -3155,12 +3158,12 @@ async backend(functionName, data = null) {
         
         console.log('🌍 Fetching Open-Meteo data (client-side)...');
         
-        const lat = 50.7667;
-        const lon = 14.5333;
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=Europe/Prague`;
+        var lat = 50.7667;
+        var lon = 14.5333;
+        var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + (lat) + '&longitude=' + (lon) + '&current=temperature_2m,weather_code,wind_speed_10m&timezone=Europe/Prague';
         
-        const response = await fetch(url);
-        const data = await response.json();
+        var response = await fetch(url);
+        var data = await response.json();
         
         this.state.weatherData = {
           source: 'openmeteo',
@@ -3179,7 +3182,7 @@ async backend(functionName, data = null) {
         // ═══════════════════════════════════════════════════════════
         
         console.log('📡 Calling WeatherXM backend (global cache)...');
-        const response = await this.backend('fetchWeatherXM');
+        var response = await this.backend('fetchWeatherXM');
         
         console.log('📡 Backend response:', response);
         
@@ -3227,44 +3230,44 @@ async backend(functionName, data = null) {
         stack: error.stack
       });
       
-      const widget = document.getElementById('weather-widget');
+      var widget = document.getElementById('weather-widget');
       if (widget) {
-        widget.innerHTML = `
+        widget.innerHTML = '
           <span class="weather-icon">❌</span>
-          <span class="weather-info">Chyba: ${error.message}</span>
-        `;
+          <span class="weather-info">Chyba: ' + (error.message) + '</span>
+        ';
       }
     }
   },
   
-  updateWeatherWidgetExternal() {
-    const widget = document.getElementById('weather-widget');
+  updateWeatherWidgetExternal: function() {
+    var widget = document.getElementById('weather-widget');
     if (!widget || !this.state.weatherData) return;
     
-    const data = this.state.weatherData;
+    var data = this.state.weatherData;
     
     if (data.source === 'openmeteo') {
-      const weatherInfo = this.getWeatherInfo(data.weatherCode);
-      widget.innerHTML = `
-        <span class="weather-icon">${weatherInfo.icon}</span>
+      var weatherInfo = this.getWeatherInfo(data.weatherCode);
+      widget.innerHTML = '
+        <span class="weather-icon">' + (weatherInfo.icon) + '</span>
         <span class="weather-info">
-          Nový Bor: ${data.temperature}°C, ${weatherInfo.desc}${data.windSpeed > 20 ? ' 💨' : ''}
+          Nový Bor: ' + (data.temperature) + '°C, ' + (weatherInfo.desc) + '' + (data.windSpeed > 20 ? ' 💨' : '') + '
         </span>
-      `;
+      ';
     } else if (data.source === 'weatherxm') {
-      const temp = data.temperature !== null ? Math.round(data.temperature) : '?';
-      const humidity = data.humidity !== null ? Math.round(data.humidity) : '?';
-      const stationName = data.stationName || 'WeatherXM';
-      widget.innerHTML = `
+      var temp = data.temperature !== null ? Math.round(data.temperature) : '?';
+      var humidity = data.humidity !== null ? Math.round(data.humidity) : '?';
+      var stationName = data.stationName || 'WeatherXM';
+      widget.innerHTML = '
         <span class="weather-icon">📡</span>
         <span class="weather-info">
-          ${stationName}: ${temp}°C, ${humidity}%
+          ' + (stationName) + ': ' + (temp) + '°C, ' + (humidity) + '%
         </span>
-      `;
+      ';
     }
     
     widget.style.cursor = 'pointer';
-    widget.onclick = () => this.showWeatherDetail();
+    widget.onclick = function() { return this.showWeatherDetail(); };
   },
 
   /**
@@ -3275,23 +3278,23 @@ async backend(functionName, data = null) {
    * @param {string} timestamp - ISO timestamp
    * @returns {string} Čitelný čas (např. "před 2 hodinami")
    */
-  getTimeAgo(timestamp) {
-    const now = Date.now();
-    const then = new Date(timestamp).getTime();
-    const diffMs = now - then;
-    const diffMin = Math.floor(diffMs / 60000);
+  getTimeAgo: function(timestamp) {
+    var now = Date.now();
+    var then = new Date(timestamp).getTime();
+    var diffMs = now - then;
+    var diffMin = Math.floor(diffMs / 60000);
     
     if (diffMin < 1) return 'právě teď';
     if (diffMin === 1) return 'před minutou';
-    if (diffMin < 60) return `před ${diffMin} minutami`;
+    if (diffMin < 60) return 'před ' + (diffMin) + ' minutami';
     
-    const diffHours = Math.floor(diffMin / 60);
+    var diffHours = Math.floor(diffMin / 60);
     if (diffHours === 1) return 'před hodinou';
-    if (diffHours < 24) return `před ${diffHours} hodinami`;
+    if (diffHours < 24) return 'před ' + (diffHours) + ' hodinami';
     
-    const diffDays = Math.floor(diffHours / 24);
+    var diffDays = Math.floor(diffHours / 24);
     if (diffDays === 1) return 'včera';
-    return `před ${diffDays} dny`;
+    return 'před ' + (diffDays) + ' dny';
   },
 
   /**
@@ -3304,9 +3307,9 @@ async backend(functionName, data = null) {
    * 
    * @see https://open-meteo.com/en/docs
    */
-  getWeatherInfo(code) {
+  getWeatherInfo: function(code) {
     // WMO Weather interpretation codes
-    const weatherMap = {
+    var weatherMap = {
       0: { icon: '☀️', desc: 'jasno' },
       1: { icon: '🌤️', desc: 'převážně jasno' },
       2: { icon: '⛅', desc: 'polojasno' },
@@ -3344,51 +3347,51 @@ async backend(functionName, data = null) {
    * @param {Object} data - Weather data from API
    * @returns {void}
    */
-  showWeatherDetail() {
-    const data = this.state.weatherData;
+  showWeatherDetail: function() {
+    var data = this.state.weatherData;
     if (!data) return;
     
     this.openModal();
     
-    const modal = document.createElement('div');
+    var modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'weather-modal';
     
-    let content = '';
+    var content = '';
     
     if (data.source === 'openmeteo') {
-      const weatherInfo = this.getWeatherInfo(data.weatherCode);
-      content = `
+      var weatherInfo = this.getWeatherInfo(data.weatherCode);
+      content = '
         <div class="modal-content">
           <div class="modal-title">🌍 OPEN-METEO</div>
           
           <div style="text-align: center; margin: 30px 0;">
             <div style="font-size: 64px; margin-bottom: 10px;">
-              ${weatherInfo.icon}
+              ' + (weatherInfo.icon) + '
             </div>
             <div style="font-size: 48px; font-weight: 700; color: #d4a574; margin-bottom: 5px;">
-              ${data.temperature}°C
+              ' + (data.temperature) + '°C
             </div>
             <div style="font-size: 18px; color: #b89968; text-transform: capitalize;">
-              ${weatherInfo.desc}
+              ' + (weatherInfo.desc) + '
             </div>
           </div>
           
           <div style="text-align: left; color: #b89968; line-height: 1.8; margin: 20px 0;">
             <p style="margin-bottom: 8px;">
-              💨 <strong>Vítr:</strong> ${data.windSpeed} km/h
+              💨 <strong>Vítr:</strong> ' + (data.windSpeed) + ' km/h
             </p>
             <p style="margin-bottom: 8px;">
               📍 <strong>Lokace:</strong> Nový Bor, Česká republika
             </p>
             <p style="font-size: 11px; opacity: 0.7; margin-top: 15px;">
-              Data z Open-Meteo API • ${this.getTimeAgo(data.timestamp)}
+              Data z Open-Meteo API • ' + (this.getTimeAgo(data.timestamp)) + '
             </p>
-            ${this.state.lastWeatherFetch > 0 ? `
+            ' + (this.state.lastWeatherFetch > 0 ? '
               <p style="font-size: 10px; opacity: 0.6; margin-top: 5px; color: #7bc876;">
-                📦 Další aktualizace za ${Math.round((600000 - (Date.now() - this.state.lastWeatherFetch)) / 60000)} min (cache: 10min)
+                📦 Další aktualizace za ' + (Math.round((600000 - (Date.now() - this.state.lastWeatherFetch)) / 60000)) + ' min (cache: 10min)
               </p>
-            ` : ''}
+            ' : '') + '
           </div>
           
           <div class="modal-buttons">
@@ -3397,18 +3400,18 @@ async backend(functionName, data = null) {
             </button>
           </div>
         </div>
-      `;
+      ';
     } else if (data.source === 'weatherxm') {
-      const temp = data.temperature !== null ? Math.round(data.temperature) : 'N/A';
-      const humidity = data.humidity !== null ? Math.round(data.humidity) : 'N/A';
-      const pressure = data.pressure !== null ? Math.round(data.pressure) : 'N/A';
-      const windSpeed = data.windSpeed !== null ? Math.round(data.windSpeed) : 'N/A';
-      const windDir = data.windDirection !== null ? Math.round(data.windDirection) : 'N/A';
-      const precip = data.precipitation !== null ? data.precipitation.toFixed(1) : 'N/A';
-      const stationName = data.stationName || 'WeatherXM Station';
-      const quality = data.stationQuality !== null ? Math.round(data.stationQuality * 100) : null;
+      var temp = data.temperature !== null ? Math.round(data.temperature) : 'N/A';
+      var humidity = data.humidity !== null ? Math.round(data.humidity) : 'N/A';
+      var pressure = data.pressure !== null ? Math.round(data.pressure) : 'N/A';
+      var windSpeed = data.windSpeed !== null ? Math.round(data.windSpeed) : 'N/A';
+      var windDir = data.windDirection !== null ? Math.round(data.windDirection) : 'N/A';
+      var precip = data.precipitation !== null ? data.precipitation.toFixed(1) : 'N/A';
+      var stationName = data.stationName || 'WeatherXM Station';
+      var quality = data.stationQuality !== null ? Math.round(data.stationQuality * 100) : null;
       
-      content = `
+      content = '
         <div class="modal-content">
           <div class="modal-title">📡 WEATHER STATION</div>
           
@@ -3417,42 +3420,42 @@ async backend(functionName, data = null) {
               📡
             </div>
             <div style="font-size: 48px; font-weight: 700; color: #d4a574; margin-bottom: 5px;">
-              ${temp}°C
+              ' + (temp) + '°C
             </div>
             <div style="font-size: 16px; color: #b89968;">
-              ${stationName}
+              ' + (stationName) + '
             </div>
-            ${quality !== null ? `
+            ' + (quality !== null ? '
               <div style="font-size: 12px; color: #7bc876; margin-top: 5px;">
-                📊 Kvalita dat: ${quality}%
+                📊 Kvalita dat: ' + (quality) + '%
               </div>
-            ` : ''}
+            ' : '') + '
           </div>
           
           <div style="text-align: left; color: #b89968; line-height: 1.8; margin: 20px 0;">
             <p style="margin-bottom: 10px;">
-              🌡️ <strong>Teplota:</strong> ${temp}°C
+              🌡️ <strong>Teplota:</strong> ' + (temp) + '°C
             </p>
             <p style="margin-bottom: 10px;">
-              💧 <strong>Vlhkost:</strong> ${humidity}%
+              💧 <strong>Vlhkost:</strong> ' + (humidity) + '%
             </p>
             <p style="margin-bottom: 10px;">
-              🔽 <strong>Tlak:</strong> ${pressure} hPa
+              🔽 <strong>Tlak:</strong> ' + (pressure) + ' hPa
             </p>
             <p style="margin-bottom: 10px;">
-              💨 <strong>Vítr:</strong> ${windSpeed} km/h (${windDir}°)
+              💨 <strong>Vítr:</strong> ' + (windSpeed) + ' km/h (' + (windDir) + '°)
             </p>
             <p style="margin-bottom: 10px;">
-              🌧️ <strong>Srážky:</strong> ${precip} mm/h
+              🌧️ <strong>Srážky:</strong> ' + (precip) + ' mm/h
             </p>
             <p style="font-size: 11px; opacity: 0.7; margin-top: 15px;">
-              Data z Weather Station • ${this.getTimeAgo(data.timestamp)}
+              Data z Weather Station • ' + (this.getTimeAgo(data.timestamp)) + '
             </p>
-            ${this.state.lastWeatherFetch > 0 ? `
+            ' + (this.state.lastWeatherFetch > 0 ? '
               <p style="font-size: 10px; opacity: 0.6; margin-top: 5px; color: #7bc876;">
-                📦 Další aktualizace za ${Math.round((10800000 - (Date.now() - this.state.lastWeatherFetch)) / 60000)} min (cache: 3h)
+                📦 Další aktualizace za ' + (Math.round((10800000 - (Date.now() - this.state.lastWeatherFetch)) / 60000)) + ' min (cache: 3h)
               </p>
-            ` : ''}
+            ' : '') + '
           </div>
           
           <div class="modal-buttons">
@@ -3461,40 +3464,42 @@ async backend(functionName, data = null) {
             </button>
           </div>
         </div>
-      `;
+      ';
     }
     
     modal.innerHTML = content;
     document.body.appendChild(modal);
   },
 
-  log(text, type = 'info') {
-    const div = document.createElement('div');
-    div.className = `log-entry log-${type}`;
+  log: function(text, type) {
+    type = type || 'info';
+    var div = document.createElement('div');
+    div.className = 'log-entry log-' + (type) + '';
     div.textContent = text;
-    const logEl = document.getElementById('log');
+    var logEl = document.getElementById('log');
     logEl.appendChild(div);
     logEl.scrollTop = logEl.scrollHeight;
   },
 
-  showNotification(text) {
-    const notif = document.createElement('div');
+  showNotification: function(text) {
+    var notif = document.createElement('div');
     notif.className = 'event-notification';
     notif.textContent = text;
     document.body.appendChild(notif);
     
-    setTimeout(() => {
+    setTimeout(function() {
       notif.style.animation = 'slideIn 0.5s ease-out reverse';
-      setTimeout(() => notif.remove(), 500);
+      setTimeout(function() {
     }, 3000);
   },
 
   // 💰 ECONOMY: Sell Item
-  sellItem(itemId, quantity = 1) {
-    const item = this.items[itemId];
+  sellItem: function(itemId, quantity) {
+    quantity = quantity || 1;
+    var item = this.items[itemId];
     if (!item) return;
     
-    const have = this.state.inventory[itemId] || 0;
+    var have = this.state.inventory[itemId] || 0;
     if (have < quantity) {
       this.log('❌ Nemáš dost na prodej', 'warning');
       return;
@@ -3505,15 +3510,15 @@ async backend(functionName, data = null) {
       return;
     }
     
-    const goldEarned = item.sellPrice * quantity;
+    var goldEarned = item.sellPrice * quantity;
     
     // Update state
     this.removeItem(itemId, quantity);
     this.state.gold += goldEarned;
     
     if (soundEffects) soundEffects.playSound('sell');
-    this.log(`🟡 Prodal jsi ${item.icon} ${item.name} ×${quantity} za ${goldEarned}g`, 'success');
-    this.showNotification(`🟡 +${goldEarned}g`);
+    this.log('🟡 Prodal jsi ' + (item.icon) + ' ' + (item.name) + ' ×' + (quantity) + ' za ' + (goldEarned) + 'g', 'success');
+    this.showNotification('🟡 +' + (goldEarned) + 'g');
     
     // GA4 Tracking
     this.track('item_sold', {
@@ -3535,7 +3540,7 @@ async backend(functionName, data = null) {
       goldAmount: goldEarned,
       newBalance: this.state.gold,
       day: this.state.day
-    }).catch((error) => {
+    }).catch(function(error) {
       console.warn('Transaction log failed:', error);
     });
     
@@ -3543,8 +3548,9 @@ async backend(functionName, data = null) {
   },
 
   // 💰 ECONOMY: Buy Item
-  buyItem(itemId, quantity = 1) {
-    const item = this.items[itemId];
+  buyItem: function(itemId, quantity) {
+    quantity = quantity || 1;
+    var item = this.items[itemId];
     if (!item) return;
     
     if (!item.buyPrice) {
@@ -3552,10 +3558,10 @@ async backend(functionName, data = null) {
       return;
     }
     
-    const goldNeeded = item.buyPrice * quantity;
+    var goldNeeded = item.buyPrice * quantity;
     
     if (this.state.gold < goldNeeded) {
-      this.log(`❌ Nemáš dost zlata (potřeba ${goldNeeded}g)`, 'warning');
+      this.log('❌ Nemáš dost zlata (potřeba ' + (goldNeeded) + 'g)', 'warning');
       return;
     }
     
@@ -3564,8 +3570,8 @@ async backend(functionName, data = null) {
     this.addItem(itemId, quantity);
     
     if (soundEffects) soundEffects.playSound('buy');
-    this.log(`🏷️ Koupil jsi ${item.icon} ${item.name} ×${quantity} za ${goldNeeded}g`, 'success');
-    this.showNotification(`🏷️ -${goldNeeded}g`);
+    this.log('🏷️ Koupil jsi ' + (item.icon) + ' ' + (item.name) + ' ×' + (quantity) + ' za ' + (goldNeeded) + 'g', 'success');
+    this.showNotification('🏷️ -' + (goldNeeded) + 'g');
     
     // GA4 Tracking
     this.track('item_bought', {
@@ -3587,37 +3593,37 @@ async backend(functionName, data = null) {
       goldAmount: goldNeeded,
       newBalance: this.state.gold,
       day: this.state.day
-    }).catch((error) => {
+    }).catch(function(error) {
       console.warn('Transaction log failed:', error);
     });
     
     this.render();
   },
 
-  hasMaterials(materials) {
-    return Object.entries(materials).every(
-      ([id, count]) => (this.state.inventory[id] || 0) >= count
+  hasMaterials: function(materials) {
+    return Object.entries(materials).every(function(
+      ([id, count]) (this.state.inventory[id] || 0) >= count
     );
   },
 
-  hasTools(tools) {
+  hasTools: function(tools) {
     if (!tools) return true;
-    return Object.entries(tools).every(
-      ([id, count]) => (this.state.inventory[id] || 0) >= count
+    return Object.entries(tools).every(function(
+      ([id, count]) (this.state.inventory[id] || 0) >= count
     );
   },
 
-  addItem(id, count) {
+  addItem: function(id, count) {
     this.state.inventory[id] = (this.state.inventory[id] || 0) + count;
   },
 
-  removeItem(id, count) {
+  removeItem: function(id, count) {
     this.state.inventory[id] = (this.state.inventory[id] || 0) - count;
     if (this.state.inventory[id] <= 0) delete this.state.inventory[id];
   },
 
-  craft(recipeId) {
-    const recipe = this.recipes.find(r => r.id === recipeId);
+  craft: function(recipeId) {
+    var recipe = this.recipes.find(function(r) { return r.id === recipeId); };
     if (!recipe) return;
 
     if (!this.hasMaterials(recipe.materials)) {
@@ -3639,7 +3645,7 @@ async backend(functionName, data = null) {
     // 🔥 FIRE STARTER RECIPES (special handling)
     if (recipe.isFireStarter) {
       // Odečti materiály
-      for (const [id, count] of Object.entries(recipe.materials)) {
+      for (var [id, count] of Object.entries(recipe.materials)) {
         this.removeItem(id, count);
       }
 
@@ -3647,7 +3653,7 @@ async backend(functionName, data = null) {
       if (Math.random() < recipe.fireChance) {
         this.state.fireActive = true;
         this.state.fireFuel = 0; // Start with 0, need to add wood
-        this.log(`🔥 Oheň vzplanul! (${recipe.fireMethod})`, 'success');
+        this.log('🔥 Oheň vzplanul! (' + (recipe.fireMethod) + ')', 'success');
         this.showNotification('🔥 Oheň hoří!');
         
         // GA tracking
@@ -3672,17 +3678,17 @@ async backend(functionName, data = null) {
 
     // NORMAL CRAFTING (not fire starter)
     // Odečti materiály
-    for (const [id, count] of Object.entries(recipe.materials)) {
+    for (var [id, count] of Object.entries(recipe.materials)) {
       this.removeItem(id, count);
     }
 
     // Přidej výsledek
-    for (const [id, count] of Object.entries(recipe.result)) {
+    for (var [id, count] of Object.entries(recipe.result)) {
       this.addItem(id, count);
     }
 
     if (soundEffects) soundEffects.playSound('craft');
-    this.log(`✅ Vytvořil jsi ${recipe.icon} ${recipe.name}`, 'success');
+    this.log('✅ Vytvořil jsi ' + (recipe.icon) + ' ' + (recipe.name) + '', 'success');
 
     // GA Tracking - Craft Item
     this.track('craft_item', {
@@ -3701,7 +3707,7 @@ async backend(functionName, data = null) {
     }
 
     if (recipe.unlock === 'hunter_entity') {
-      const hasHunter = this.state.entities.some(e => e.type === 'hunter');
+      var hasHunter = this.state.entities.some(function(e) { return e.type === 'hunter'); };
       if (!hasHunter) {
         this.spawnEntity('hunter');
         this.log('🏹 Lovec se připojil k doupěti!', 'success');
@@ -3712,11 +3718,11 @@ async backend(functionName, data = null) {
     this.render();
   },
 
-  spawnEntity(typeId) {
-    const type = this.entityTypes.find(t => t.id === typeId);
+  spawnEntity: function(typeId) {
+    var type = this.entityTypes.find(function(t) { return t.id === typeId); };
     if (!type) return;
 
-    const entity = {
+    var entity = {
       id: Date.now(),
       type: typeId,
       name: type.name,
@@ -3737,12 +3743,12 @@ async backend(functionName, data = null) {
     });
   },
 
-  assignAction(entityId, actionIndex) {
-    const entity = this.state.entities.find(e => e.id === entityId);
+  assignAction: function(entityId, actionIndex) {
+    var entity = this.state.entities.find(function(e) { return e.id === entityId); };
     if (!entity) return;
 
-    const type = this.entityTypes.find(t => t.id === entity.type);
-    const action = type.actions[actionIndex];
+    var type = this.entityTypes.find(function(t) { return t.id === entity.type); };
+    var action = type.actions[actionIndex];
 
     if (!this.hasTools(action.requires)) {
       this.log('❌ Entita nemá potřebné nástroje', 'warning');
@@ -3758,7 +3764,7 @@ async backend(functionName, data = null) {
     entity.daysLeft = action.duration;
 
     if (soundEffects) soundEffects.playSound('gather');
-    this.log(`${entity.icon} ${entity.name} začal: ${action.name}`, 'info');
+    this.log('' + (entity.icon) + ' ' + (entity.name) + ' začal: ' + (action.name) + '', 'info');
     
     // GA Tracking - Entity Action
     this.track('entity_action', {
@@ -3771,19 +3777,19 @@ async backend(functionName, data = null) {
     this.render();
   },
 
-  processEntities() {
-    this.state.entities.forEach(entity => {
+  processEntities: function() {
+    this.state.entities.forEach(function(entity) {
       if (entity.status === 'working' && entity.daysLeft > 0) {
         entity.daysLeft--;
 
         if (entity.daysLeft === 0) {
           // 🔥 FUEL ACTION (special handling)
           if (entity.action.isFuelAction) {
-            const woodAvailable = this.state.inventory.wood || 0;
+            var woodAvailable = this.state.inventory.wood || 0;
             if (woodAvailable >= 3) {
               this.removeItem('wood', 3);
               this.state.fireFuel += 3; // 3 wood = 2 days fuel
-              this.log(`${entity.icon} ${entity.name} přiložil do ohně (+2 dny, -3 🪵)`, 'success');
+              this.log('' + (entity.icon) + ' ' + (entity.name) + ' přiložil do ohně (+2 dny, -3 🪵)', 'success');
               
               // GA Tracking - Fuel Added
               this.track('fire_fueled', {
@@ -3793,7 +3799,7 @@ async backend(functionName, data = null) {
                 day: this.state.day
               });
             } else {
-              this.log(`${entity.icon} ${entity.name} nemá dřevo (potřeba 3)`, 'warning');
+              this.log('' + (entity.icon) + ' ' + (entity.name) + ' nemá dřevo (potřeba 3)', 'warning');
             }
             entity.status = 'idle';
             entity.action = null;
@@ -3802,11 +3808,11 @@ async backend(functionName, data = null) {
 
           // Speciální zpracování heating akce
           if (entity.action.isHeating) {
-            const woodAvailable = this.state.inventory.wood || 0;
+            var woodAvailable = this.state.inventory.wood || 0;
             if (woodAvailable >= 3) {
               this.removeItem('wood', 3);
               this.state.heating = Math.min(this.state.heating + 1, 3);
-              this.log(`${entity.icon} ${entity.name} zatopil v krbu (+5°C po 1 den)`, 'success');
+              this.log('' + (entity.icon) + ' ' + (entity.name) + ' zatopil v krbu (+5°C po 1 den)', 'success');
               
               // GA Tracking - Heating
               this.track('heating_action', {
@@ -3816,7 +3822,7 @@ async backend(functionName, data = null) {
                 day: this.state.day
               });
             } else {
-              this.log(`${entity.icon} ${entity.name} nemá dřevo na topení (potřeba 3)`, 'warning');
+              this.log('' + (entity.icon) + ' ' + (entity.name) + ' nemá dřevo na topení (potřeba 3)', 'warning');
               
               // GA Tracking - Heating Failed
               this.track('heating_action', {
@@ -3832,21 +3838,21 @@ async backend(functionName, data = null) {
           }
           
           // Akce dokončena - normální result
-          const result = entity.action.result();
+          var result = entity.action.result();
           
-          let resultText = [];
-          for (const [itemId, count] of Object.entries(result)) {
+          var resultText = [];
+          for (var [itemId, count] of Object.entries(result)) {
             if (count > 0) {
               this.addItem(itemId, count);
-              const item = this.items[itemId];
-              resultText.push(`${item.icon} ${item.name} ×${count}`);
+              var item = this.items[itemId];
+              resultText.push('' + (item.icon) + ' ' + (item.name) + ' ×' + (count) + '');
             }
           }
 
           if (resultText.length > 0) {
-            this.log(`${entity.icon} ${entity.name} přinesl: ${resultText.join(', ')}`, 'item');
+            this.log('' + (entity.icon) + ' ' + (entity.name) + ' přinesl: ' + (resultText.join(', ')) + '', 'item');
           } else {
-            this.log(`${entity.icon} ${entity.name} se vrátil s prázdnou`, 'warning');
+            this.log('' + (entity.icon) + ' ' + (entity.name) + ' se vrátil s prázdnou', 'warning');
           }
 
           entity.status = 'idle';
@@ -3856,11 +3862,11 @@ async backend(functionName, data = null) {
     });
   },
 
-  triggerRandomEvent() {
-    const currentSeason = this.seasons[this.state.season];
+  triggerRandomEvent: function() {
+    var currentSeason = this.seasons[this.state.season];
     
     // Filtruj události podle sezóny
-    const availableEvents = this.randomEvents.filter(event => {
+    var availableEvents = this.randomEvents.filter(function(event) {
       if (event.season && !event.season.includes(this.state.season)) {
         return false;
       }
@@ -3872,18 +3878,18 @@ async backend(functionName, data = null) {
     if (soundEffects) soundEffects.playSound('alert');
 
     // Vyber událost podle vah
-    const totalChance = availableEvents.reduce((sum, e) => sum + e.chance, 0);
-    let roll = Math.random() * totalChance;
+    var totalChance = availableEvents.reducefunction((sum, e) sum + e.chance, 0);
+    var roll = Math.random() * totalChance;
 
-    for (const event of availableEvents) {
+    for (var event of availableEvents) {
       roll -= event.chance;
       if (roll <= 0) {
         if (event.items) {
-          for (const [itemId, range] of Object.entries(event.items)) {
-            const count = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+          for (var [itemId, range] of Object.entries(event.items)) {
+            var count = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
             this.addItem(itemId, count);
-            const item = this.items[itemId];
-            this.log(event.message + ` (+${count} ${item.icon})`, 'item');
+            var item = this.items[itemId];
+            this.log(event.message + ' (+' + (count) + ' ' + (item.icon) + ')', 'item');
           }
         } else {
           this.log(event.message, 'info');
@@ -3893,7 +3899,7 @@ async backend(functionName, data = null) {
     }
   },
 
-  nextDay() {
+  nextDay: function() {
     if (this.state.dead) return;
 
     if (soundEffects) soundEffects.playSound('nextDay');
@@ -3902,7 +3908,7 @@ async backend(functionName, data = null) {
     
     // 🎵 AUTO-START MUSIC if not already playing
     if (window.atmosphericMusic && !window.atmosphericMusic.isPlaying) {
-      const musicEnabled = localStorage.getItem('musicEnabled') !== 'false';
+      var musicEnabled = localStorage.getItem('musicEnabled') !== 'false';
       if (musicEnabled) {
         console.log('🎵 Auto-starting music (not playing)');
         window.atmosphericMusic.play(this.state.season, true); // forceFirstTrack = true
@@ -3911,12 +3917,12 @@ async backend(functionName, data = null) {
     }
 
     // Změna sezóny každých 15 dní
-    const newSeason = Math.floor((this.state.day - 1) / 15) % 4;
+    var newSeason = Math.floor((this.state.day - 1) / 15) % 4;
     if (newSeason !== this.state.season) {
       this.state.season = newSeason;
-      const season = this.seasons[this.state.season];
-      this.log(`${season.icon} Nastává ${season.name}! ${season.desc}`, 'warning');
-      this.showNotification(`${season.icon} ${season.name} začíná!`);
+      var season = this.seasons[this.state.season];
+      this.log('' + (season.icon) + ' Nastává ' + (season.name) + '! ' + (season.desc) + '', 'warning');
+      this.showNotification('' + (season.icon) + ' ' + (season.name) + ' začíná!');
       
       // GA Tracking - Season Change
       this.track('season_change', {
@@ -3940,9 +3946,9 @@ async backend(functionName, data = null) {
       });
     }
 
-    const season = this.seasons[this.state.season];
+    var season = this.seasons[this.state.season];
 
-    this.log(`--- Den ${this.state.day} ---`, 'info');
+    this.log('--- Den ' + (this.state.day) + ' ---', 'info');
     // 🔥 FIRE DECAY
     if (this.state.fireFuel > 0) {
       this.state.fireFuel--;
@@ -3957,17 +3963,17 @@ async backend(functionName, data = null) {
           reason: 'no_fuel'
         });
       } else {
-        this.log(`🔥 Oheň hoří (zbývá ${this.state.fireFuel} dní)`, 'info');
+        this.log('🔥 Oheň hoří (zbývá ' + (this.state.fireFuel) + ' dní)', 'info');
       }
     }
     // Výpočet teploty
     this.calculateTemperature();
-    const tempEffects = this.getTemperatureEffects();
-    const tempEmoji = this.getTemperatureEmoji(this.state.temperature);
+    var tempEffects = this.getTemperatureEffects();
+    var tempEmoji = this.getTemperatureEmoji(this.state.temperature);
     
     // Temperature warning
     if (this.state.temperature < 5) {
-      this.log(`${tempEmoji} Je mrazivě! (${this.state.temperature}°C) Spotřeba jídla +50%`, 'danger');
+      this.log('' + (tempEmoji) + ' Je mrazivě! (' + (this.state.temperature) + '°C) Spotřeba jídla +50%', 'danger');
       // GA Tracking - Extreme Cold
       this.track('extreme_temperature', {
         type: 'freezing',
@@ -3976,9 +3982,9 @@ async backend(functionName, data = null) {
         heating_active: this.state.heating > 0
       });
     } else if (this.state.temperature < 10) {
-      this.log(`${tempEmoji} Je chladno (${this.state.temperature}°C) Spotřeba jídla +20%`, 'warning');
+      this.log('' + (tempEmoji) + ' Je chladno (' + (this.state.temperature) + '°C) Spotřeba jídla +20%', 'warning');
     } else if (this.state.temperature > 28) {
-      this.log(`${tempEmoji} Je vedro! (${this.state.temperature}°C) Spotřeba vody +50%`, 'danger');
+      this.log('' + (tempEmoji) + ' Je vedro! (' + (this.state.temperature) + '°C) Spotřeba vody +50%', 'danger');
       // GA Tracking - Extreme Heat
       this.track('extreme_temperature', {
         type: 'heatwave',
@@ -3986,11 +3992,11 @@ async backend(functionName, data = null) {
         day: this.state.day
       });
     } else if (this.state.temperature > 23) {
-      this.log(`${tempEmoji} Je horko (${this.state.temperature}°C) Spotřeba vody +20%`, 'warning');
+      this.log('' + (tempEmoji) + ' Je horko (' + (this.state.temperature) + '°C) Spotřeba vody +20%', 'warning');
     } else if (this.state.temperature >= 10 && this.state.temperature <= 20) {
-      this.log(`${tempEmoji} Příjemná teplota (${this.state.temperature}°C) Efektivita +10%!`, 'success');
+      this.log('' + (tempEmoji) + ' Příjemná teplota (' + (this.state.temperature) + '°C) Efektivita +10%!', 'success');
     } else {
-      this.log(`${tempEmoji} Teplota: ${this.state.temperature}°C`, 'info');
+      this.log('' + (tempEmoji) + ' Teplota: ' + (this.state.temperature) + '°C', 'info');
     }
     
     // Heating decay
@@ -4006,17 +4012,17 @@ async backend(functionName, data = null) {
 
     // Garantované kameny prvních 5 dní (min 2, max 3)
     if (this.state.day <= 5) {
-      const stonesGiven = this.state.guaranteedStones || 0;
+      var stonesGiven = this.state.guaranteedStones || 0;
       
       if (stonesGiven < 2) {
         // Ještě nemáme 2 → zagarantovat 1 kámen
         this.addItem('stone', 1);
-        this.log(`⛰️ Našel jsi kámen! (+1)`, 'item');
+        this.log('⛰️ Našel jsi kámen! (+1)', 'item');
         this.state.guaranteedStones = stonesGiven + 1;
       } else if (stonesGiven === 2 && Math.random() < 0.5) {
         // Máme 2, šance 50% na 3.
         this.addItem('stone', 1);
-        this.log(`⛰️ Našel jsi kámen! (+1)`, 'item');
+        this.log('⛰️ Našel jsi kámen! (+1)', 'item');
         this.state.guaranteedStones = 3;
       }
     }
@@ -4029,28 +4035,28 @@ async backend(functionName, data = null) {
 
     // Denní spotřeba podle sezóny + POPULATION SCALING + TEMPERATURE EFFECTS
     // První entita je "free" (základní spotřeba), každá další +40%
-    const effectivePopulation = Math.max(0, this.state.entities.length - 1);
-    const populationMultiplier = 1 + (effectivePopulation * 0.4);
+    var effectivePopulation = Math.max(0, this.state.entities.length - 1);
+    var populationMultiplier = 1 + (effectivePopulation * 0.4);
     
-    const hungerNeeded = Math.ceil(season.hungerDrain * populationMultiplier * tempEffects.hungerMultiplier);
-    const waterNeeded = Math.ceil(season.waterDrain * populationMultiplier * tempEffects.waterMultiplier);
+    var hungerNeeded = Math.ceil(season.hungerDrain * populationMultiplier * tempEffects.hungerMultiplier);
+    var waterNeeded = Math.ceil(season.waterDrain * populationMultiplier * tempEffects.waterMultiplier);
     
-    const foodAvailable = this.state.inventory.food || 0;
-    const waterAvailable = this.state.inventory.water_supply || 0;
+    var foodAvailable = this.state.inventory.food || 0;
+    var waterAvailable = this.state.inventory.water_supply || 0;
 
     // Info o populaci
     if (this.state.entities.length > 0) {
-      this.log(`👥 Kolonie: ${this.state.entities.length + 1} obyvatel (spotřeba: ×${populationMultiplier.toFixed(1)})`, 'info');
+      this.log('👥 Kolonie: ' + (this.state.entities.length + 1) + ' obyvatel (spotřeba: ×' + (populationMultiplier.toFixed(1)) + ')', 'info');
     }
 
     // Spotřebuj jídlo
     if (foodAvailable >= hungerNeeded) {
       this.removeItem('food', hungerNeeded);
-      this.log(`🍖 Spotřebováno ${hungerNeeded} jídla`, 'info');
+      this.log('🍖 Spotřebováno ' + (hungerNeeded) + ' jídla', 'info');
     } else {
       if (foodAvailable > 0) {
         this.removeItem('food', foodAvailable);
-        this.log(`⚠️ Spotřebováno jen ${foodAvailable} jídla, chybí ${hungerNeeded - foodAvailable}`, 'warning');
+        this.log('⚠️ Spotřebováno jen ' + (foodAvailable) + ' jídla, chybí ' + (hungerNeeded - foodAvailable) + '', 'warning');
       }
       this.gameOver('🍖 Kolonie umřela hlady');
       return;
@@ -4066,11 +4072,11 @@ async backend(functionName, data = null) {
     // Spotřebuj vodu
     if (waterAvailable >= waterNeeded) {
       this.removeItem('water_supply', waterNeeded);
-      this.log(`💧 Spotřebováno ${waterNeeded} vody`, 'info');
+      this.log('💧 Spotřebováno ' + (waterNeeded) + ' vody', 'info');
     } else {
       if (waterAvailable > 0) {
         this.removeItem('water_supply', waterAvailable);
-        this.log(`⚠️ Spotřebována jen ${waterAvailable} voda, chybí ${waterNeeded - waterAvailable}`, 'warning');
+        this.log('⚠️ Spotřebována jen ' + (waterAvailable) + ' voda, chybí ' + (waterNeeded - waterAvailable) + '', 'warning');
       }
       this.gameOver('💧 Kolonie umřela žízní');
       return;
@@ -4079,11 +4085,12 @@ async backend(functionName, data = null) {
     this.render();
   },
 
-  gameOver(reason = 'Nepřežil jsi') {
+  gameOver: function(reason) {
     this.state.dead = true;
+    reason = reason || 'Nepřežil jsi';
     
     // Zkontroluj jestli je to nový osobní rekord
-    const isNewBestRun = this.state.day > this.state.bestRun;
+    var isNewBestRun = this.state.day > this.state.bestRun;
     
     // GA Tracking - Game Over (detailed)
     this.track('game_over', {
@@ -4108,8 +4115,8 @@ async backend(functionName, data = null) {
     }
     
     // Běžný game over screen
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
+    var overlay = document.createElement('div');
+    overlay.style.cssText = '
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.95);
@@ -4118,8 +4125,8 @@ async backend(functionName, data = null) {
       justify-content: center;
       z-index: 9999;
       animation: fadeIn 0.5s ease-out;
-    `;
-    overlay.innerHTML = `
+    ';
+    overlay.innerHTML = '
       <div style="
         background: linear-gradient(145deg, #1a1410, #2d2416);
         padding: 50px;
@@ -4141,13 +4148,13 @@ async backend(functionName, data = null) {
           font-size: 20px;
           margin-bottom: 30px;
           font-family: 'Crimson Pro', serif;
-        ">${reason}</p>
+        ">' + (reason) + '</p>
         <p style="
           color: #9a8670;
           font-size: 16px;
           margin-bottom: 30px;
           font-family: 'Space Mono', monospace;
-        ">Přežil jsi ${this.state.day} dní</p>
+        ">Přežil jsi ' + (this.state.day) + ' dní</p>
         <button onclick="game.confirmReset()" style="
           padding: 16px 32px;
           font-size: 18px;
@@ -4161,10 +4168,10 @@ async backend(functionName, data = null) {
           box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
         ">🔄 Zkusit znovu</button>
       </div>
-    `;
+    ';
     
-    const style = document.createElement('style');
-    style.textContent = `
+    var style = document.createElement('style');
+    style.textContent = '
       @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
@@ -4173,26 +4180,26 @@ async backend(functionName, data = null) {
         from { transform: scale(0.8); opacity: 0; }
         to { transform: scale(1); opacity: 1; }
       }
-    `;
+    ';
     document.head.appendChild(style);
     
     document.body.appendChild(overlay);
   },
 
-  showNicknameModal(reason) {
+  showNicknameModal: function(reason) {
     // Lock scroll
     this.openModal();
     
-    const modal = document.createElement('div');
+    var modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'nickname-modal';
     
-    modal.innerHTML = `
+    modal.innerHTML = '
       <div class="modal-content">
         <div class="modal-title">🎉 NOVÝ OSOBNÍ REKORD!</div>
-        <p class="nickname-info">Přežil jsi <strong>${this.state.day} dní</strong></p>
+        <p class="nickname-info">Přežil jsi <strong>' + (this.state.day) + ' dní</strong></p>
         <p class="nickname-info" style="font-size: 12px; color: #9a8670; margin-top: -5px;">
-          Předchozí rekord: ${this.state.bestRun} dní
+          Předchozí rekord: ' + (this.state.bestRun) + ' dní
         </p>
         <p class="nickname-info" style="margin-top: 15px;">Zadej svou přezdívku pro žebříček:</p>
         <input 
@@ -4201,7 +4208,7 @@ async backend(functionName, data = null) {
           id="nickname-input"
           placeholder="Tvoje přezdívka..." 
           maxlength="20"
-          value="${this.state.playerNickname || ''}"
+          value="' + (this.state.playerNickname || '') + '"
         />
         <div class="modal-buttons">
           <button class="modal-btn modal-btn-primary" onclick="game.saveHighScoreToSheet()">
@@ -4212,26 +4219,26 @@ async backend(functionName, data = null) {
           </button>
         </div>
       </div>
-    `;
+    ';
     
     document.body.appendChild(modal);
     
     // Focus na input
-    setTimeout(() => {
+    setTimeout(function() {
       document.getElementById('nickname-input').focus();
     }, 100);
     
     // Enter key = save
-    document.getElementById('nickname-input').addEventListener('keypress', (e) => {
+    document.getElementById('nickname-input').addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         this.saveHighScoreToSheet();
       }
     });
   },
 
-  saveHighScoreToSheet() {
-    const nicknameInput = document.getElementById('nickname-input');
-    const nickname = nicknameInput.value.trim() || 'Anonymous';
+  saveHighScoreToSheet: function() {
+    var nicknameInput = document.getElementById('nickname-input');
+    var nickname = nicknameInput.value.trim() || 'Anonymous';
     
     // Ulož nickname do localStorage
     this.state.playerNickname = nickname;
@@ -4242,7 +4249,7 @@ async backend(functionName, data = null) {
     localStorage.setItem('doupe_best_run', this.state.day.toString());
     
     // Odešli do Google Sheets
-    const data = {
+    var data = {
       playerId: this.state.playerId,
       nickname: nickname,
       days: this.state.day,
@@ -4258,11 +4265,11 @@ async backend(functionName, data = null) {
     nicknameInput.value = 'Ukládám...';
     
     this.backend('saveHighScore', data)
-      .then((response) => {
+      .then(function(response) {
         if (response.success) {
           console.log('High score saved:', response);
           this.closeModal('nickname-modal');
-          this.showGameOverScreen(`🏆 ${response.message}`);
+          this.showGameOverScreen('🏆 ' + (response.message) + '');
         } else if (response.standalone) {
           // Standalone mode - save locally only
           console.log('Standalone mode - saved locally');
@@ -4272,7 +4279,7 @@ async backend(functionName, data = null) {
           throw new Error(response.message || 'Unknown error');
         }
       })
-      .catch((error) => {
+      .catch(function(error) {
         console.error('Error saving high score:', error);
         alert('Chyba při ukládání: ' + (error.message || error));
         nicknameInput.disabled = false;
@@ -4280,7 +4287,7 @@ async backend(functionName, data = null) {
       });
   },
 
-  skipNickname() {
+  skipNickname: function() {
     // Ulož best run bez odeslání do sheets
     this.state.bestRun = this.state.day;
     localStorage.setItem('doupe_best_run', this.state.day.toString());
@@ -4289,9 +4296,9 @@ async backend(functionName, data = null) {
     this.showGameOverScreen('💀 GAME OVER');
   },
 
-  showGameOverScreen(title) {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
+  showGameOverScreen: function(title) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = '
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.95);
@@ -4300,8 +4307,8 @@ async backend(functionName, data = null) {
       justify-content: center;
       z-index: 9999;
       animation: fadeIn 0.5s ease-out;
-    `;
-    overlay.innerHTML = `
+    ';
+    overlay.innerHTML = '
       <div style="
         background: linear-gradient(145deg, #1a1410, #2d2416);
         padding: 50px;
@@ -4317,13 +4324,13 @@ async backend(functionName, data = null) {
           margin-bottom: 20px;
           font-family: 'Space Mono', monospace;
           text-shadow: 0 4px 12px rgba(230, 126, 123, 0.5);
-        ">${title}</h1>
+        ">' + (title) + '</h1>
         <p style="
           color: #9a8670;
           font-size: 16px;
           margin-bottom: 30px;
           font-family: 'Space Mono', monospace;
-        ">Přežil jsi ${this.state.day} dní</p>
+        ">Přežil jsi ' + (this.state.day) + ' dní</p>
         <button onclick="game.confirmReset()" style="
           padding: 16px 32px;
           font-size: 18px;
@@ -4337,30 +4344,30 @@ async backend(functionName, data = null) {
           box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
         ">🔄 Zkusit znovu</button>
       </div>
-    `;
+    ';
     
     document.body.appendChild(overlay);
   },
 
-  showLeaderboard() {
+  showLeaderboard: function() {
     // Lock scroll
     this.openModal();
     
     // Zobraz loading
-    const loadingModal = document.createElement('div');
+    var loadingModal = document.createElement('div');
     loadingModal.className = 'modal-overlay';
     loadingModal.id = 'leaderboard-modal';
-    loadingModal.innerHTML = `
+    loadingModal.innerHTML = '
       <div class="modal-content">
         <div class="modal-title">🏆 ŽEBŘÍČEK</div>
         <p class="nickname-info">Načítám data...</p>
       </div>
-    `;
+    ';
     document.body.appendChild(loadingModal);
     
     // Načti data z Sheets (přes API)
     this.backend('getLeaderboard')
-      .then((response) => {
+      .then(function(response) {
         if (response.success) {
           this.renderLeaderboard(response.data);
         } else {
@@ -4370,37 +4377,37 @@ async backend(functionName, data = null) {
           this.closeModal('leaderboard-modal');
         }
       })
-      .catch((error) => {
+      .catch(function(error) {
         console.error('Leaderboard error:', error);
         alert('Chyba při načítání žebříčku: ' + error.message);
         this.closeModal('leaderboard-modal');
       });
   },
 
-  renderLeaderboard(data) {
-    const modal = document.getElementById('leaderboard-modal');
+  renderLeaderboard: function(data) {
+    var modal = document.getElementById('leaderboard-modal');
     
-    let tableRows = '';
+    var tableRows = '';
     if (data.length === 0) {
       tableRows = '<tr><td colspan="4" style="text-align: center; padding: 30px; color: #9a8670;">Žebříček je zatím prázdný...</td></tr>';
     } else {
-      tableRows = data.map(entry => {
-        const rankClass = entry.rank <= 3 ? `rank-${entry.rank}` : 'rank-other';
-        const isYou = entry.playerId === this.state.playerId;
-        const rowClass = isYou ? 'your-rank' : '';
+      tableRows = data.map(function(entry) {
+        var rankClass = entry.rank <= 3 ? 'rank-' + (entry.rank) + '' : 'rank-other';
+        var isYou = entry.playerId === this.state.playerId;
+        var rowClass = isYou ? 'your-rank' : '';
         
-        return `
-          <tr class="${rowClass}">
-            <td><span class="rank-badge ${rankClass}">${entry.rank}</span></td>
-            <td>${entry.nickname}${isYou ? ' <strong>(ty)</strong>' : ''}</td>
-            <td><strong>${entry.days}d</strong></td>
-            <td>${this.getSeasonIcon(entry.season)} ${entry.population}👥</td>
+        return '
+          <tr class="' + (rowClass) + '">
+            <td><span class="rank-badge ' + (rankClass) + '">' + (entry.rank) + '</span></td>
+            <td>' + (entry.nickname) + '' + (isYou ? ' <strong>(ty)</strong>' : '') + '</td>
+            <td><strong>' + (entry.days) + 'd</strong></td>
+            <td>' + (this.getSeasonIcon(entry.season)) + ' ' + (entry.population) + '👥</td>
           </tr>
-        `;
+        ';
       }).join('');
     }
     
-    modal.innerHTML = `
+    modal.innerHTML = '
       <div class="modal-content">
         <div class="modal-title">🏆 TOP 10 KOLONIÍ</div>
         <table class="leaderboard-table">
@@ -4413,7 +4420,7 @@ async backend(functionName, data = null) {
             </tr>
           </thead>
           <tbody>
-            ${tableRows}
+            ' + (tableRows) + '
           </tbody>
         </table>
         <div class="modal-buttons">
@@ -4422,11 +4429,11 @@ async backend(functionName, data = null) {
           </button>
         </div>
       </div>
-    `;
+    ';
   },
 
-  getSeasonIcon(seasonName) {
-    const icons = {
+  getSeasonIcon: function(seasonName) {
+    var icons = {
       'Jaro': '🌱',
       'Léto': '☀️',
       'Podzim': '🍂',
@@ -4436,14 +4443,14 @@ async backend(functionName, data = null) {
   },
 
   // 💾 SAVE & LOAD GAME
-  saveGame() {
+  saveGame: function() {
     try {
-      const saveData = JSON.stringify(this.state);
+      var saveData = JSON.stringify(this.state);
       
       // Save via backend (Apps Script) or localStorage (standalone)
-      if (this.isAppsScript) {
+      if (this.isAppsScript()) {
         this.backend('saveGameState', saveData)
-          .then((response) => {
+          .then(function(response) {
             if (response.success) {
               this.log('💾 ' + response.message, 'success');
               this.showNotification('💾 Hra uložena!');
@@ -4451,7 +4458,7 @@ async backend(functionName, data = null) {
               throw new Error(response.message);
             }
           })
-          .catch((error) => {
+          .catch(function(error) {
             this.log('❌ Chyba při ukládání: ' + error, 'danger');
           });
       } else {
@@ -4493,7 +4500,7 @@ async backend(functionName, data = null) {
    * @see confirmLoad() - Actual load happens here after confirmation
    * @tested ✅ 2026-02-08 - Modal displays correctly
    */
-  loadGame() {
+  loadGame: function() {
     console.log('🔄 loadGame() called');
     
     // Lock scroll
@@ -4501,27 +4508,27 @@ async backend(functionName, data = null) {
     console.log('✅ Modal locked');
     
     // Show loading modal first
-    const loadingModal = document.createElement('div');
+    var loadingModal = document.createElement('div');
     loadingModal.className = 'modal-overlay';
     loadingModal.id = 'load-modal';
-    loadingModal.innerHTML = `
+    loadingModal.innerHTML = '
       <div class="modal-content">
         <div class="modal-title">📂 NAČÍST HRU</div>
         <p class="nickname-info">Načítám uloženou hru...</p>
       </div>
-    `;
+    ';
     document.body.appendChild(loadingModal);
     console.log('✅ Loading modal added to DOM');
     
     // Load save data
-    const loadSaveData = () => {
-      if (this.isAppsScript) {
+    var loadSaveData = function() {
+      if (this.isAppsScript()) {
         console.log('🌐 Apps Script mode - calling backend');
         return this.backend('loadGameState');
       } else {
         console.log('💾 Standalone mode - checking localStorage');
         // Standalone - localStorage
-        const saved = localStorage.getItem('doupe_save');
+        var saved = localStorage.getItem('doupe_save');
         if (saved) {
           console.log('✅ Save found in localStorage');
           return Promise.resolve({ success: true, data: saved });
@@ -4533,10 +4540,10 @@ async backend(functionName, data = null) {
     };
     
     loadSaveData()
-      .then((response) => {
+      .then(function(response) {
         console.log('📦 Response:', response);
         if (response.success && response.data) {
-          const saveState = JSON.parse(response.data);
+          var saveState = JSON.parse(response.data);
           console.log('✅ Save state parsed:', saveState);
           this.showLoadConfirmModal(saveState);
         } else {
@@ -4547,7 +4554,7 @@ async backend(functionName, data = null) {
           this.showNotification('❌ Žádná uložená hra');
         }
       })
-      .catch((error) => {
+      .catch(function(error) {
         console.error('❌ Error loading save:', error);
         this.closeModal('load-modal');
         this.log('❌ Chyba při načítání: ' + error, 'danger');
@@ -4556,8 +4563,8 @@ async backend(functionName, data = null) {
   },
 
   // 📂 SHOW LOAD CONFIRM MODAL - zobrazí preview save a potvrzení
-  showLoadConfirmModal(saveState) {
-    const modal = document.getElementById('load-modal');
+  showLoadConfirmModal: function(saveState) {
+    var modal = document.getElementById('load-modal');
     
     if (!modal) {
       console.error('Load modal not found!');
@@ -4565,17 +4572,17 @@ async backend(functionName, data = null) {
     }
     
     // Bezpečné načtení sezóny
-    const seasonIndex = saveState.season || 0;
-    const season = this.seasons[seasonIndex] || this.seasons[0];
-    const population = (saveState.entities?.length || 0) + 1;
+    var seasonIndex = saveState.season || 0;
+    var season = this.seasons[seasonIndex] || this.seasons[0];
+    var population = ((saveState.entities && saveState.entities.length) || 0) + 1;
     
     // Bezpečný výpočet dní (pokud drain je 0, nastav "∞")
-    const hungerDrain = season.hungerDrain || 1;
-    const waterDrain = season.waterDrain || 1;
-    const foodDays = Math.floor((saveState.inventory?.food || 0) / hungerDrain);
-    const waterDays = Math.floor((saveState.inventory?.water_supply || 0) / waterDrain);
+    var hungerDrain = season.hungerDrain || 1;
+    var waterDrain = season.waterDrain || 1;
+    var foodDays = Math.floor(((saveState.inventory && saveState.inventory.food) || 0) / hungerDrain);
+    var waterDays = Math.floor(((saveState.inventory && saveState.inventory.water_supply) || 0) / waterDrain);
     
-    modal.innerHTML = `
+    modal.innerHTML = '
       <div class="modal-content">
         <div class="modal-title">📂 NAČÍST ULOŽENOU HRU?</div>
         
@@ -4585,30 +4592,30 @@ async backend(functionName, data = null) {
           </p>
           
           <p style="margin-bottom: 8px;">
-            📅 <strong>Den:</strong> ${saveState.day || 1} (${season.icon} ${season.name})
+            📅 <strong>Den:</strong> ' + (saveState.day || 1) + ' (' + (season.icon) + ' ' + (season.name) + ')
           </p>
           
           <p style="margin-bottom: 8px;">
-            👥 <strong>Kolonie:</strong> ${population} obyvatel
+            👥 <strong>Kolonie:</strong> ' + (population) + ' obyvatel
           </p>
           
           <p style="margin-bottom: 8px;">
-            🍖 <strong>Jídlo:</strong> ${saveState.inventory?.food || 0} (${foodDays}d)
+            🍖 <strong>Jídlo:</strong> ' + ((saveState.inventory && saveState.inventory.food) || 0) + ' (' + (foodDays) + 'd)
           </p>
           
           <p style="margin-bottom: 8px;">
-            💧 <strong>Voda:</strong> ${saveState.inventory?.water_supply || 0} (${waterDays}d)
+            💧 <strong>Voda:</strong> ' + ((saveState.inventory && saveState.inventory.water_supply) || 0) + ' (' + (waterDays) + 'd)
           </p>
           
           <p style="margin-bottom: 8px;">
-            🌡️ <strong>Teplota:</strong> ${saveState.temperature || 15}°C
+            🌡️ <strong>Teplota:</strong> ' + (saveState.temperature || 15) + '°C
           </p>
           
           <p style="margin-bottom: 8px;">
-            💰 <strong>Zlato:</strong> ${saveState.gold || 0}g
+            💰 <strong>Zlato:</strong> ' + (saveState.gold || 0) + 'g
           </p>
           
-          ${saveState.fireActive ? '<p style="margin-bottom: 8px; color: #ff9944;">🔥 <strong>Oheň hoří!</strong></p>' : ''}
+          ' + (saveState.fireActive ? '<p style="margin-bottom: 8px; color: #ff9944;">🔥 <strong>Oheň hoří!</strong></p>' : '') + '
         </div>
         
         <p class="nickname-info" style="color: #e67e7b; font-size: 13px; margin-top: -10px;">
@@ -4624,14 +4631,14 @@ async backend(functionName, data = null) {
           </button>
         </div>
       </div>
-    `;
+    ';
     
     // Store save state for confirmLoad
     this._pendingSaveState = saveState;
   },
 
   // ✅ CONFIRM LOAD - potvrzení a načtení hry
-  confirmLoad() {
+  confirmLoad: function() {
     if (!this._pendingSaveState) return;
     
     try {
@@ -4655,7 +4662,7 @@ async backend(functionName, data = null) {
       
       // 🎵 AUTO-START MUSIC after loading game
       if (window.atmosphericMusic && !window.atmosphericMusic.isPlaying) {
-        const musicEnabled = localStorage.getItem('musicEnabled') !== 'false';
+        var musicEnabled = localStorage.getItem('musicEnabled') !== 'false';
         if (musicEnabled) {
           console.log('🎵 Auto-starting music after Load Game');
           window.atmosphericMusic.play(this.state.season, true); // forceFirstTrack = true
@@ -4673,7 +4680,7 @@ async backend(functionName, data = null) {
     }
   },
 
-  reset() {
+  reset: function() {
     // If player is alive (not in game over), show warning modal
     if (!this.state.dead) {
       this.showResetWarningModal();
@@ -4685,36 +4692,36 @@ async backend(functionName, data = null) {
   },
 
   // ⚠️ RESET WARNING MODAL - zobrazí před resetem živé hry
-  showResetWarningModal() {
+  showResetWarningModal: function() {
     // Lock scroll
     this.openModal();
     
-    const modal = document.createElement('div');
+    var modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'reset-warning-modal';
     
     // Calculate current stats
-    const season = this.seasons[this.state.season];
-    const population = this.state.entities.length + 1;
-    const foodLeft = this.state.inventory.food || 0;
-    const waterLeft = this.state.inventory.water_supply || 0;
-    const goldLeft = this.state.gold || 0;
+    var season = this.seasons[this.state.season];
+    var population = this.state.entities.length + 1;
+    var foodLeft = this.state.inventory.food || 0;
+    var waterLeft = this.state.inventory.water_supply || 0;
+    var goldLeft = this.state.gold || 0;
     
     // Days remaining calculation
-    const hungerDrain = season.hungerDrain || 1;
-    const waterDrain = season.waterDrain || 1;
-    const foodDays = Math.floor(foodLeft / hungerDrain);
-    const waterDays = Math.floor(waterLeft / waterDrain);
-    const survivalDays = Math.min(foodDays, waterDays);
+    var hungerDrain = season.hungerDrain || 1;
+    var waterDrain = season.waterDrain || 1;
+    var foodDays = Math.floor(foodLeft / hungerDrain);
+    var waterDays = Math.floor(waterLeft / waterDrain);
+    var survivalDays = Math.min(foodDays, waterDays);
     
     // Count valuable items
-    const storage = this.state.inventory.storage || 0;
-    const fireplace = this.state.inventory.fireplace || 0;
-    const insulation = this.state.inventory.insulation || 0;
-    const wall = this.state.inventory.wall || 0;
-    const hasInfrastructure = storage > 0 || fireplace > 0 || insulation > 0 || wall > 0;
+    var storage = this.state.inventory.storage || 0;
+    var fireplace = this.state.inventory.fireplace || 0;
+    var insulation = this.state.inventory.insulation || 0;
+    var wall = this.state.inventory.wall || 0;
+    var hasInfrastructure = storage > 0 || fireplace > 0 || insulation > 0 || wall > 0;
     
-    modal.innerHTML = `
+    modal.innerHTML = '
       <div class="modal-content" style="max-width: 600px;">
         <div class="modal-title" style="color: #e67e7b;">⚠️ OPRAVDU CHCEŠ ZAČÍT ZNOVU?</div>
         
@@ -4742,52 +4749,52 @@ async backend(functionName, data = null) {
             <div style="display: grid; gap: 10px; font-size: 13px;">
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(139, 90, 43, 0.2);">
                 <span>📅 Přežité dny:</span>
-                <strong style="color: #d4a574;">${this.state.day} dní</strong>
+                <strong style="color: #d4a574;">' + (this.state.day) + ' dní</strong>
               </div>
               
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(139, 90, 43, 0.2);">
-                <span>${season.icon} Sezóna:</span>
-                <strong style="color: #d4a574;">${season.name}</strong>
+                <span>' + (season.icon) + ' Sezóna:</span>
+                <strong style="color: #d4a574;">' + (season.name) + '</strong>
               </div>
               
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(139, 90, 43, 0.2);">
                 <span>👥 Populace:</span>
-                <strong style="color: #d4a574;">${population} obyvatel</strong>
+                <strong style="color: #d4a574;">' + (population) + ' obyvatel</strong>
               </div>
               
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(139, 90, 43, 0.2);">
                 <span>🍖 Jídlo:</span>
-                <strong style="color: ${foodLeft < 20 ? '#e67e7b' : '#7bc876'};">${foodLeft} (${foodDays}d)</strong>
+                <strong style="color: ' + (foodLeft < 20 ? '#e67e7b' : '#7bc876') + ';">' + (foodLeft) + ' (' + (foodDays) + 'd)</strong>
               </div>
               
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(139, 90, 43, 0.2);">
                 <span>💧 Voda:</span>
-                <strong style="color: ${waterLeft < 20 ? '#e67e7b' : '#7bc876'};">${waterLeft} (${waterDays}d)</strong>
+                <strong style="color: ' + (waterLeft < 20 ? '#e67e7b' : '#7bc876') + ';">' + (waterLeft) + ' (' + (waterDays) + 'd)</strong>
               </div>
               
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(139, 90, 43, 0.2);">
                 <span>🟡 Zlato:</span>
-                <strong style="color: #f4d03f;">${goldLeft}g</strong>
+                <strong style="color: #f4d03f;">' + (goldLeft) + 'g</strong>
               </div>
               
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(139, 90, 43, 0.2);">
                 <span>🌡️ Teplota:</span>
-                <strong style="color: ${this.state.temperature < 10 ? '#7bc9ff' : this.state.temperature > 23 ? '#e67e7b' : '#7bc876'};">${this.state.temperature}°C</strong>
+                <strong style="color: ' + (this.state.temperature < 10 ? '#7bc9ff' : this.state.temperature > 23 ? '#e67e7b' : '#7bc876') + ';">' + (this.state.temperature) + '°C</strong>
               </div>
               
-              ${hasInfrastructure ? `
+              ' + (hasInfrastructure ? '
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(139, 90, 43, 0.2);">
                 <span>🏗️ Infrastruktura:</span>
                 <strong style="color: #d4a574;">
-                  ${storage > 0 ? '📦 ' : ''}${fireplace > 0 ? '🔥 ' : ''}${insulation > 0 ? '🧱 ' : ''}${wall > 0 ? '🛡️ ' : ''}
+                  ' + (storage > 0 ? '📦 ' : '') + '' + (fireplace > 0 ? '🔥 ' : '') + '' + (insulation > 0 ? '🧱 ' : '') + '' + (wall > 0 ? '🛡️ ' : '') + '
                 </strong>
               </div>
-              ` : ''}
+              ' : '') + '
               
               <div style="display: flex; justify-content: space-between; padding: 8px 0;">
                 <span>⏰ Přežiješ ještě:</span>
-                <strong style="color: ${survivalDays < 5 ? '#e67e7b' : survivalDays < 15 ? '#f4d03f' : '#7bc876'};">
-                  ~${survivalDays} dní
+                <strong style="color: ' + (survivalDays < 5 ? '#e67e7b' : survivalDays < 15 ? '#f4d03f' : '#7bc876') + ';">
+                  ~' + (survivalDays) + ' dní
                 </strong>
               </div>
             </div>
@@ -4810,27 +4817,27 @@ async backend(functionName, data = null) {
           </button>
         </div>
       </div>
-    `;
+    ';
     
     document.body.appendChild(modal);
   },
 
   // 🔄 CONFIRM RESET - samotný reset po potvrzení
-  confirmReset() {
+  confirmReset: function() {
     // Close any modals
     this.closeModal('reset-warning-modal');
     
     // Odstraň game over overlay pokud existuje
-    const overlay = document.querySelector('div[style*="position: fixed"]');
+    var overlay = document.querySelector('div[style*="position: fixed"]');
     if (overlay) overlay.remove();
     
     // Odstraň modals
-    const modal = document.getElementById('leaderboard-modal') || document.getElementById('nickname-modal');
+    var modal = document.getElementById('leaderboard-modal') || document.getElementById('nickname-modal');
     if (modal) modal.remove();
 
     // GA Tracking - Game Reset
-    const wasDead = this.state.dead;
-    const finalDay = this.state.day;
+    var wasDead = this.state.dead;
+    var finalDay = this.state.day;
     
     this.track('game_reset', {
       was_dead: wasDead,
@@ -4839,9 +4846,9 @@ async backend(functionName, data = null) {
     });
     
     // Zachovej player data
-    const savedPlayerId = this.state.playerId;
-    const savedNickname = this.state.playerNickname;
-    const savedBestRun = this.state.bestRun;
+    var savedPlayerId = this.state.playerId;
+    var savedNickname = this.state.playerNickname;
+    var savedBestRun = this.state.bestRun;
 
     this.state = {
       day: 1,
@@ -4870,112 +4877,111 @@ async backend(functionName, data = null) {
     this.init();
   },
 
-  renderInventory() {
-    const el = document.getElementById('inventory');
+  renderInventory: function() {
+    var el = document.getElementById('inventory');
     el.innerHTML = '';
 
-    const entries = Object.entries(this.state.inventory ?? {});
+    var entries = Object.entries(this.state.inventory ?? {});
 
     if (entries.length === 0) {
       el.innerHTML = '<div class="empty-state">Inventář je prázdný...</div>';
       return;
     }
 
-    entries.forEach(([id, count]) => {
-      const item = this.items[id];
+    entries.forEachfunction(([id, count]) {
+      var item = this.items[id];
       if (!item) return;
 
-      const card = document.createElement('div');
+      var card = document.createElement('div');
       card.className = 'item-card';
       
       // 💰 ECONOMY: Sell button (pro všechno kromě food/water)
-      let actionButton = '';
+      var actionButton = '';
       if (item.sellPrice && id !== 'food' && id !== 'water_supply') {
-        actionButton = `
-          <button class="item-action-btn item-sell-btn" onclick="game.sellItem('${id}', 1)">
-            🟡 ${item.sellPrice}g
+        actionButton = '
+          <button class="item-action-btn item-sell-btn" onclick="game.sellItem('' + (id) + '', 1)">
+            🟡 ' + (item.sellPrice) + 'g
           </button>
-        `;
+        ';
       }
       
       // 💰 ECONOMY: Buy button (jen pro food/water)
       if (item.buyPrice && (id === 'food' || id === 'water_supply')) {
-        actionButton = `
-          <button class="item-action-btn item-buy-btn" onclick="game.buyItem('${id}', 1)">
-            🏷️ ${item.buyPrice}g
+        actionButton = '
+          <button class="item-action-btn item-buy-btn" onclick="game.buyItem('' + (id) + '', 1)">
+            🏷️ ' + (item.buyPrice) + 'g
           </button>
-        `;
+        ';
       }
       
-      card.innerHTML = `
-        <div class="item-icon">${item.icon}</div>
+      card.innerHTML = '
+        <div class="item-icon">' + (item.icon) + '</div>
         <div class="item-details">
-          <div class="item-name">${item.name}</div>
-          <div class="item-desc">${item.desc}</div>
+          <div class="item-name">' + (item.name) + '</div>
+          <div class="item-desc">' + (item.desc) + '</div>
         </div>
-        <div class="item-count">×${count}</div>
-        ${actionButton}
-      `;
+        <div class="item-count">×' + (count) + '</div>
+        ' + (actionButton) + '
+      ';
 
       el.appendChild(card);
     });
   },
 
-  renderRecipes() {
-    const el = document.getElementById('recipes');
+  renderRecipes: function() {
+    var el = document.getElementById('recipes');
     el.innerHTML = '';
 
     // Zobraz jen odemčené recepty
-    const availableRecipes = this.recipes.filter(r => 
-      this.state.unlockedRecipes.includes(r.id)
-    );
+    var availableRecipes = this.recipes.filter(function(r) { return this.state.unlockedRecipes.includes(r.id)
+    ); };
 
     if (availableRecipes.length === 0) {
       el.innerHTML = '<div class="empty-state">Zatím žádné recepty...</div>';
       return;
     }
 
-    availableRecipes.forEach(recipe => {
-      const canCraft = this.hasMaterials(recipe.materials) && 
+    availableRecipes.forEach(function(recipe) {
+      var canCraft = this.hasMaterials(recipe.materials) && 
                        this.hasTools(recipe.requires);
 
-      const card = document.createElement('div');
-      card.className = `recipe-card ${canCraft ? 'can-craft' : 'cannot-craft'}`;
+      var card = document.createElement('div');
+      card.className = 'recipe-card ' + (canCraft ? 'can-craft' : 'cannot-craft') + '';
 
-      const mats = Object.entries(recipe.materials)
-        .map(([id, needed]) => {
-          const have = this.state.inventory[id] || 0;
-          const item = this.items[id];
-          return `${item.icon} ${have}/${needed}`;
+      var mats = Object.entries(recipe.materials)
+        .mapfunction(([id, needed]) {
+          var have = this.state.inventory[id] || 0;
+          var item = this.items[id];
+          return '' + (item.icon) + ' ' + (have) + '/' + (needed) + '';
         })
         .join(' • ');
 
-      let requiresText = '';
+      var requiresText = '';
       if (recipe.requires) {
         requiresText = ' | Vyžaduje: ' + Object.keys(recipe.requires)
-          .map(id => this.items[id].icon)
+          .map(function(id) { return this.items[id].icon; })
           .join(' ');
       }
 
-      card.innerHTML = `
+      card.innerHTML = '
         <div class="recipe-header">
-          <div class="recipe-icon">${recipe.icon}</div>
-          <div class="recipe-name">${recipe.name}</div>
+          <div class="recipe-icon">' + (recipe.icon) + '</div>
+          <div class="recipe-name">' + (recipe.name) + '</div>
         </div>
-        <div class="recipe-materials">${mats}${requiresText}</div>
-      `;
+        <div class="recipe-materials">' + (mats) + '' + (requiresText) + '</div>
+      ';
 
       if (canCraft) {
-        card.onclick = () => this.craft(recipe.id);
+        card.onclick = function() { return this.craft(recipe.id); };
       }
 
       el.appendChild(card);
     });
   },
 
-  renderEntities() {
-    const section = document.getElementById('entities-section');
-    const el = document.getElementById('entities');
+  renderEntities: function() {
+    var section = document.getElementById('entities-section');
+    var el = document.getElementById('entities');
 
     if (this.state.entities.length === 0) {
       section.style.display = 'none';
@@ -4985,38 +4991,38 @@ async backend(functionName, data = null) {
     section.style.display = 'block';
     el.innerHTML = '';
 
-    this.state.entities.forEach(entity => {
-      const type = this.entityTypes.find(t => t.id === entity.type);
+    this.state.entities.forEach(function(entity) {
+      var type = this.entityTypes.find(function(t) { return t.id === entity.type); };
       
-      const card = document.createElement('div');
+      var card = document.createElement('div');
       card.className = 'entity-card';
 
-      let statusText = 'Nečinný';
+      var statusText = 'Nečinný';
       if (entity.status === 'working') {
-        statusText = `${entity.action.name} (${entity.daysLeft} dní)`;
+        statusText = '' + (entity.action.name) + ' (' + (entity.daysLeft) + ' dní)';
       }
 
-      card.innerHTML = `
+      card.innerHTML = '
         <div class="entity-header">
-          <div class="entity-icon">${entity.icon}</div>
+          <div class="entity-icon">' + (entity.icon) + '</div>
           <div class="entity-info">
-            <div class="entity-name">${entity.name}</div>
-            <div class="entity-status">${statusText}</div>
+            <div class="entity-name">' + (entity.name) + '</div>
+            <div class="entity-status">' + (statusText) + '</div>
           </div>
         </div>
-      `;
+      ';
 
       if (entity.status === 'idle') {
-        const actionsDiv = document.createElement('div');
+        var actionsDiv = document.createElement('div');
         actionsDiv.className = 'entity-actions';
 
-        type.actions.forEach((action, index) => {
-          const canDo = this.hasTools(action.requires);
-          const btn = document.createElement('button');
+        type.actions.forEachfunction((action, index) {
+          var canDo = this.hasTools(action.requires);
+          var btn = document.createElement('button');
           btn.className = 'entity-action-btn';
           btn.textContent = action.name;
           btn.disabled = !canDo;
-          btn.onclick = () => this.assignAction(entity.id, index);
+          btn.onclick = function() { return this.assignAction(entity.id, index); };
           actionsDiv.appendChild(btn);
         });
 
@@ -5054,52 +5060,52 @@ async backend(functionName, data = null) {
    * 
    * @tested ✅ 2026-02-08 - All sections update correctly
    */
-  render() {
+  render: function() {
     document.getElementById('day').textContent = this.state.day;
-    const season = this.seasons[this.state.season];
+    var season = this.seasons[this.state.season];
     document.getElementById('season').textContent = season.name;
 
     // Population multiplier + temperature effects pro consumption
-    const effectivePopulation = Math.max(0, this.state.entities.length - 1);
-    const populationMultiplier = 1 + (effectivePopulation * 0.4);
-    const tempEffects = this.getTemperatureEffects();
+    var effectivePopulation = Math.max(0, this.state.entities.length - 1);
+    var populationMultiplier = 1 + (effectivePopulation * 0.4);
+    var tempEffects = this.getTemperatureEffects();
 
     // Zobrazíme kolik máš vs. kolik potřebuješ na další den
-    const hungerNeeded = Math.ceil(season.hungerDrain * populationMultiplier * tempEffects.hungerMultiplier);
-    const waterNeeded = Math.ceil(season.waterDrain * populationMultiplier * tempEffects.waterMultiplier);
+    var hungerNeeded = Math.ceil(season.hungerDrain * populationMultiplier * tempEffects.hungerMultiplier);
+    var waterNeeded = Math.ceil(season.waterDrain * populationMultiplier * tempEffects.waterMultiplier);
     
-    const foodHave = this.state.inventory.food || 0;
-    const waterHave = this.state.inventory.water_supply || 0;
+    var foodHave = this.state.inventory.food || 0;
+    var waterHave = this.state.inventory.water_supply || 0;
     
     // Vypočítej kolik dní ti to vydrží
-    const foodDays = hungerNeeded > 0 ? Math.floor(foodHave / hungerNeeded) : 0;
-    const waterDays = waterNeeded > 0 ? Math.floor(waterHave / waterNeeded) : 0;
+    var foodDays = hungerNeeded > 0 ? Math.floor(foodHave / hungerNeeded) : 0;
+    var waterDays = waterNeeded > 0 ? Math.floor(waterHave / waterNeeded) : 0;
     
     // Bar ukazuje kolik dní ti to vydrží (max 20 dní = 100%)
-    const hungerPercent = Math.min(100, (foodDays / 20) * 100);
-    const waterPercent = Math.min(100, (waterDays / 20) * 100);
+    var hungerPercent = Math.min(100, (foodDays / 20) * 100);
+    var waterPercent = Math.min(100, (waterDays / 20) * 100);
 
     document.getElementById('hunger-fill').style.width = hungerPercent + '%';
-    document.getElementById('hunger-fill').textContent = `${foodHave} (${foodDays}d)`;
+    document.getElementById('hunger-fill').textContent = '' + (foodHave) + ' (' + (foodDays) + 'd)';
 
     document.getElementById('water-fill').style.width = waterPercent + '%';
-    document.getElementById('water-fill').textContent = `${waterHave} (${waterDays}d)`;
+    document.getElementById('water-fill').textContent = '' + (waterHave) + ' (' + (waterDays) + 'd)';
 
     // Temperature bar
-    const temp = this.state.temperature;
-    const tempEmoji = this.getTemperatureEmoji(temp);
+    var temp = this.state.temperature;
+    var tempEmoji = this.getTemperatureEmoji(temp);
     document.getElementById('temp-emoji').textContent = tempEmoji;
     
     // Temperature bar width: -10°C = 0%, +40°C = 100% (range 50°C)
-    const tempPercent = Math.max(0, Math.min(100, ((temp + 10) / 50) * 100));
+    var tempPercent = Math.max(0, Math.min(100, ((temp + 10) / 50) * 100));
     document.getElementById('temp-fill').style.width = tempPercent + '%';
     
-    let tempText = `${temp}°C`;
+    var tempText = '' + (temp) + '°C';
     if (this.state.heating > 0) {
-      tempText += ` 🔥×${this.state.heating}`;
+      tempText += ' 🔥×' + (this.state.heating) + '';
     }
     if (this.state.shelterLevel > 1) {
-      tempText += ` 🧱×${Math.round((this.state.shelterLevel - 1) * 2)}`;
+      tempText += ' 🧱×' + (Math.round((this.state.shelterLevel - 1) * 2)) + '';
     }
     document.getElementById('temp-fill').textContent = tempText;
 
@@ -5118,16 +5124,16 @@ async backend(functionName, data = null) {
     this.updateFooterStats();
   },
 
-  autoUnlockRecipes() {
-    let unlocked = false;
+  autoUnlockRecipes: function() {
+    var unlocked = false;
     
-    this.recipes.forEach(recipe => {
+    this.recipes.forEach(function(recipe) {
       if (this.state.unlockedRecipes.includes(recipe.id)) return;
       
       // Zkontroluj jestli máš materiály na tento recept
-      const hasSomeMaterials = Object.keys(recipe.materials).some(
-        matId => (this.state.inventory[matId] || 0) > 0
-      );
+      var hasSomeMaterials = Object.keys(recipe.materials).some(
+        function: function(matId) {
+      ); };
 
       // Tier 1-2: unlock když máš materiály
       if (hasSomeMaterials && recipe.tier <= 2) {
@@ -5170,8 +5176,8 @@ async backend(functionName, data = null) {
   // ═══════════════════════════════════════════════════════════════
   // 🎯 CHECK THREATS (volat v nextDay())
   // ═══════════════════════════════════════════════════════════════
-  checkThreats() {
-    const daysSinceLastThreat = this.state.day - (this.state.lastSeasonalThreat || 0);
+  checkThreats: function() {
+    var daysSinceLastThreat = this.state.day - (this.state.lastSeasonalThreat || 0);
 
     // Cooldown check
     if (daysSinceLastThreat < this.state.threatCooldown) {
@@ -5186,7 +5192,7 @@ async backend(functionName, data = null) {
 
     // 🎲 Random threat (pouze od 5. dne)
     if (this.state.day >= 5 && this.state.randomThreatCount < this.state.maxRandomThreats) {
-      const chance = 0.10; // 10% per day
+      var chance = 0.10; // 10% per day
       if (Math.random() < chance) {
         this.triggerRandomThreat();
       }
@@ -5196,29 +5202,28 @@ async backend(functionName, data = null) {
   // ═══════════════════════════════════════════════════════════════
   // 🌍 SEASONAL THREAT (konec období)
   // ═══════════════════════════════════════════════════════════════
-  triggerSeasonalThreat() {
-    const currentSeason = this.state.season;
+  triggerSeasonalThreat: function() {
+    var currentSeason = this.state.season;
 
     // Filter threats by season
-    const seasonalThreats = Object.values(this.threats).filter(t => 
-      t.seasons && t.seasons.includes(currentSeason)
-    );
+    var seasonalThreats = Object.values(this.threats).filter(function(t) { return t.seasons && t.seasons.includes(currentSeason)
+    ); };
 
     if (seasonalThreats.length === 0) {
       // Fallback to any threat
-      const allThreats = Object.values(this.threats).filter(t => t.seasons);
+      var allThreats = Object.values(this.threats).filter(function(t) { return t.seasons); };
       if (allThreats.length > 0) {
-        const threat = allThreats[Math.floor(Math.random() * allThreats.length)];
+        var threat = allThreats[Math.floor(Math.random() * allThreats.length)];
         this.triggerThreat(threat, true);
       }
       return;
     }
 
     // Weighted random (tier = weight)
-    const totalWeight = seasonalThreats.reduce((sum, t) => sum + t.tier, 0);
-    let roll = Math.random() * totalWeight;
+    var totalWeight = seasonalThreats.reducefunction((sum, t) sum + t.tier, 0);
+    var roll = Math.random() * totalWeight;
 
-    for (const threat of seasonalThreats) {
+    for (var threat of seasonalThreats) {
       roll -= threat.tier;
       if (roll <= 0) {
         this.triggerThreat(threat, true);
@@ -5230,9 +5235,9 @@ async backend(functionName, data = null) {
   // ═══════════════════════════════════════════════════════════════
   // 🎲 RANDOM THREAT (kdykoliv)
   // ═══════════════════════════════════════════════════════════════
-  triggerRandomThreat() {
-    const allThreats = Object.values(this.threats);
-    const threat = allThreats[Math.floor(Math.random() * allThreats.length)];
+  triggerRandomThreat: function() {
+    var allThreats = Object.values(this.threats);
+    var threat = allThreats[Math.floor(Math.random() * allThreats.length)];
 
     this.triggerThreat(threat, false);
     this.state.randomThreatCount++;
@@ -5241,13 +5246,12 @@ async backend(functionName, data = null) {
   // ═══════════════════════════════════════════════════════════════
   // ⚔️ TRIGGER THREAT (main)
   // ═══════════════════════════════════════════════════════════════
-  triggerThreat(threat, isSeasonal) {
+  triggerThreat: function(threat, isSeasonal) {
     this.state.lastSeasonalThreat = this.state.day;
 
     // Check if can avoid (medicine_hut for plague)
     if (threat.canAvoid) {
-      const canAvoid = Object.entries(threat.canAvoid).every(([item, count]) => 
-        (this.state.inventory[item] || 0) >= count
+      var canAvoid = Object.entries(threat.canAvoid).everyfunction(([item, count]) (this.state.inventory[item] || 0) >= count
       );
 
       if (canAvoid) {
@@ -5285,41 +5289,41 @@ async backend(functionName, data = null) {
   // ═══════════════════════════════════════════════════════════════
   // 📋 SHOW COMBAT MODAL
   // ═══════════════════════════════════════════════════════════════
-  showCombatModal(threat) {
+  showCombatModal: function(threat) {
     this.openModal();
 
     // Init combat system
     this.combat.init(threat);
 
-    const modal = document.createElement('div');
+    var modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'combat-modal';
 
-    const seasonName = this.seasons[this.state.season].name;
+    var seasonName = this.seasons[this.state.season].name;
 
-    modal.innerHTML = `
+    modal.innerHTML = '
       <div class="modal-content" style="max-width: 600px;">
         <div style="text-align: center; margin-bottom: 20px;">
-          <div style="font-size: 48px; margin-bottom: 10px;">${threat.icon}</div>
+          <div style="font-size: 48px; margin-bottom: 10px;">' + (threat.icon) + '</div>
           <h2 style="color: #e74c3c; font-size: 24px; margin-bottom: 10px;">
-            ${threat.name}
+            ' + (threat.name) + '
           </h2>
           <p style="color: #b89968; font-size: 20px; line-height: 1.6;">
-            ${threat.intro}
+            ' + (threat.intro) + '
           </p>
           <div style="margin-top: 10px; padding: 14px; background: rgba(231, 76, 60, 0.1); border-radius: 4px;">
             <span style="color: #e8d5b7; font-size: 12px;">
-              ${seasonName} | Den ${this.state.day} | Obtížnost: ${threat.aiDifficulty.toUpperCase()}
+              ' + (seasonName) + ' | Den ' + (this.state.day) + ' | Obtížnost: ' + (threat.aiDifficulty.toUpperCase()) + '
             </span>
           </div>
         </div>
 
         <div id="combat-board-container" style="margin: 20px 0; text-align: center;">
-          ${this.renderCombatBoardHTML()}
+          ' + (this.renderCombatBoardHTML()) + '
         </div>
 
         <div id="combat-status" style="text-align: center; margin: 18px 0; color: #4ec9b0; font-size: 14px; font-weight: 600;">
-          Tvůj tah: ${threat.playerIcon}
+          Tvůj tah: ' + (threat.playerIcon) + '
         </div>
 
         <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
@@ -5332,7 +5336,7 @@ async backend(functionName, data = null) {
           <strong style="color: #e8d5b7;">Pravidla:</strong> Sestav 5 symbolů v řadě (vodorovně, svisle nebo diagonálně).
         </div>
       </div>
-    `;
+    ';
 
     document.body.appendChild(modal);
   },
@@ -5340,20 +5344,20 @@ async backend(functionName, data = null) {
   // ═══════════════════════════════════════════════════════════════
   // 🎮 RENDER COMBAT BOARD
   // ═══════════════════════════════════════════════════════════════
-  renderCombatBoardHTML() {
-    const size = this.combat.size;
-    let html = '<div style="display: inline-block; background: #1a1410; padding: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);">';
+  renderCombatBoardHTML: function() {
+    var size = this.combat.size;
+    var html = '<div style="display: inline-block; background: #1a1410; padding: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);">';
 
-    for (let r = 0; r < size; r++) {
+    for (var r = 0; r < size; r++) {
       html += '<div style="display: flex;">';
-      for (let c = 0; c < size; c++) {
-        const cell = this.combat.board[r][c];
-        const icon = cell === 'player' ? this.combat.playerIcon : 
+      for (var c = 0; c < size; c++) {
+        var cell = this.combat.board[r][c];
+        var icon = cell === 'player' ? this.combat.playerIcon : 
                      cell === 'enemy' ? this.combat.enemyIcon : '';
 
-        html += `
+        html += '
           <div 
-            onclick="game.handleCombatClick(${r}, ${c})" 
+            onclick="game.handleCombatClick(' + (r) + ', ' + (c) + ')" 
             style="
               width: 50px; 
               height: 50px; 
@@ -5363,15 +5367,15 @@ async backend(functionName, data = null) {
               justify-content: center; 
               cursor: pointer;
               font-size: 24px;
-              background: ${cell ? 'rgba(232, 213, 183, 0.05)' : 'transparent'};
+              background: ' + (cell ? 'rgba(232, 213, 183, 0.05)' : 'transparent') + ';
               transition: all 0.2s;
             "
             onmouseover="if (!this.innerHTML.trim()) this.style.background='rgba(78, 200, 176, 0.1)'"
             onmouseout="if (!this.innerHTML.trim()) this.style.background='transparent'"
           >
-            ${icon}
+            ' + (icon) + '
           </div>
-        `;
+        ';
       }
       html += '</div>';
     }
@@ -5380,8 +5384,8 @@ async backend(functionName, data = null) {
     return html;
   },
 
-  renderCombatBoard() {
-    const container = document.getElementById('combat-board-container');
+  renderCombatBoard: function() {
+    var container = document.getElementById('combat-board-container');
     if (container) {
       container.innerHTML = this.renderCombatBoardHTML();
     }
@@ -5390,28 +5394,28 @@ async backend(functionName, data = null) {
   // ═══════════════════════════════════════════════════════════════
   // 🖱️ HANDLE COMBAT CLICK
   // ═══════════════════════════════════════════════════════════════
-  handleCombatClick(row, col) {
+  handleCombatClick: function(row, col) {
     if (!this.combat.gameActive) return;
 
-    const result = this.combat.makeMove(row, col);
+    var result = this.combat.makeMove(row, col);
 
     if (result === 'player_win') {
-      setTimeout(() => this.handleCombatEnd(true), 500);
+      setTimeout(function() {
     } else if (result === 'draw') {
-      setTimeout(() => this.handleCombatEnd(true), 500);
+      setTimeout(function() {
     } else if (result) {
       this.renderCombatBoard();
       document.getElementById('combat-status').innerHTML = 
-        `Nepřítel přemýšlí... ${this.combat.enemyIcon}`;
+        'Nepřítel přemýšlí... ' + (this.combat.enemyIcon) + '';
     }
   },
 
   // ═══════════════════════════════════════════════════════════════
   // 🏆 HANDLE COMBAT END
   // ═══════════════════════════════════════════════════════════════
-  handleCombatEnd(playerWon) {
-    const threat = this.combat.currentThreat;
-    const outcome = playerWon ? threat.onVictory : threat.onDefeat;
+  handleCombatEnd: function(playerWon) {
+    var threat = this.combat.currentThreat;
+    var outcome = playerWon ? threat.onVictory : threat.onDefeat;
     if (playerWon) {
     if (soundEffects) soundEffects.playSound('win');
     } else {
@@ -5420,10 +5424,10 @@ async backend(functionName, data = null) {
 
     // Apply consequences
     if (outcome.items) {
-      for (const [itemId, value] of Object.entries(outcome.items)) {
+      for (var [itemId, value] of Object.entries(outcome.items)) {
         if (Array.isArray(value)) {
           // Range [min, max]
-          const amount = Math.floor(Math.random() * (value[1] - value[0] + 1)) + value[0];
+          var amount = Math.floor(Math.random() * (value[1] - value[0] + 1)) + value[0];
           if (amount > 0) {
             this.addItem(itemId, amount);
           } else {
@@ -5441,7 +5445,7 @@ async backend(functionName, data = null) {
 
     if (outcome.gold) {
       if (Array.isArray(outcome.gold)) {
-        const amount = Math.floor(Math.random() * (outcome.gold[1] - outcome.gold[0] + 1)) + outcome.gold[0];
+        var amount = Math.floor(Math.random() * (outcome.gold[1] - outcome.gold[0] + 1)) + outcome.gold[0];
         this.state.gold += amount;
       } else if (outcome.gold < 1 && outcome.gold > -1) {
         // Percentage
@@ -5453,9 +5457,9 @@ async backend(functionName, data = null) {
 
     if (outcome.casualties && this.state.entities.length > 0) {
       if (Math.random() < outcome.casualties) {
-        const victim = this.state.entities[Math.floor(Math.random() * this.state.entities.length)];
-        this.state.entities = this.state.entities.filter(e => e.id !== victim.id);
-        this.log(`💀 ${victim.name} zahynul v boji!`, 'danger');
+        var victim = this.state.entities[Math.floor(Math.random() * this.state.entities.length)];
+        this.state.entities = this.state.entities.filter(function(e) { return e.id !== victim.id); };
+        this.log('💀 ' + (victim.name) + ' zahynul v boji!', 'danger');
 
         // GA4 tracking
         this.track('entity_death', {
@@ -5469,26 +5473,26 @@ async backend(functionName, data = null) {
     }
 
     // Show result
-    const resultModal = document.createElement('div');
+    var resultModal = document.createElement('div');
     resultModal.className = 'modal-overlay';
     resultModal.style.zIndex = '10001';
 
-    resultModal.innerHTML = `
+    resultModal.innerHTML = '
       <div class="modal-content" style="max-width: 400px; text-align: center;">
         <div style="font-size: 72px; margin-bottom: 20px;">
-          ${playerWon ? '🎉' : '💀'}
+          ' + (playerWon ? '🎉' : '💀') + '
         </div>
-        <h2 style="color: ${playerWon ? '#4ec9b0' : '#e74c3c'}; font-size: 28px; margin-bottom: 15px;">
-          ${playerWon ? 'Vítězství!' : 'Porážka!'}
+        <h2 style="color: ' + (playerWon ? '#4ec9b0' : '#e74c3c') + '; font-size: 28px; margin-bottom: 15px;">
+          ' + (playerWon ? 'Vítězství!' : 'Porážka!') + '
         </h2>
         <p style="color: #e8d5b7; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-          ${outcome.message}
+          ' + (outcome.message) + '
         </p>
         <button class="modal-btn modal-btn-primary" onclick="game.closeCombatResult()">
           Pokračovat
         </button>
       </div>
-    `;
+    ';
 
     document.body.appendChild(resultModal);
 
@@ -5513,17 +5517,17 @@ async backend(functionName, data = null) {
   // ═══════════════════════════════════════════════════════════════
   // 🏃 FLEE COMBAT
   // ═══════════════════════════════════════════════════════════════
-  fleeCombat() {
+  fleeCombat: function() {
     if (!confirm('Opravdu chceš utéct? Utrpíš 50% ztrát z porážky!')) return;
 
-    const threat = this.combat.currentThreat;
-    const outcome = threat.onDefeat;
+    var threat = this.combat.currentThreat;
+    var outcome = threat.onDefeat;
 
     // Apply 50% of defeat consequences
     if (outcome.items) {
-      for (const [itemId, value] of Object.entries(outcome.items)) {
+      for (var [itemId, value] of Object.entries(outcome.items)) {
         if (Array.isArray(value)) {
-          const amount = Math.floor((Math.random() * (value[1] - value[0] + 1)) + value[0]) * 0.5;
+          var amount = Math.floor((Math.random() * (value[1] - value[0] + 1)) + value[0]) * 0.5;
           this.removeItem(itemId, Math.ceil(Math.abs(amount)));
         } else if (value < 0) {
           this.removeItem(itemId, Math.ceil(Math.abs(value) * 0.5));
@@ -5533,13 +5537,13 @@ async backend(functionName, data = null) {
 
     if (outcome.casualties && this.state.entities.length > 0) {
       if (Math.random() < (outcome.casualties * 0.5)) {
-        const victim = this.state.entities[Math.floor(Math.random() * this.state.entities.length)];
-        this.state.entities = this.state.entities.filter(e => e.id !== victim.id);
-        this.log(`💀 ${victim.name} zahynul při útěku!`, 'danger');
+        var victim = this.state.entities[Math.floor(Math.random() * this.state.entities.length)];
+        this.state.entities = this.state.entities.filter(function(e) { return e.id !== victim.id); };
+        this.log('💀 ' + (victim.name) + ' zahynul při útěku!', 'danger');
       }
     }
 
-    this.log(`🏃 Uprchl jsi z boje! Ale s těžkými ztrátami...`, 'warning');
+    this.log('🏃 Uprchl jsi z boje! Ale s těžkými ztrátami...', 'warning');
 
     // GA4 tracking
     this.track('combat_fled', {
@@ -5552,9 +5556,9 @@ async backend(functionName, data = null) {
     this.render();
   },
 
-  closeCombatResult() {
-    const modals = document.querySelectorAll('.modal-overlay');
-    modals.forEach(m => m.remove());
+  closeCombatResult: function() {
+    var modals = document.querySelectorAll('.modal-overlay');
+    modals.forEach(function(m) { return m.remove()); };
     this.closeModal('combat-modal');
   },
 
@@ -5564,861 +5568,101 @@ async backend(functionName, data = null) {
     // 🎵 ATMOSPHERIC MUSIC SYSTEM with Seasonal Tracks
     // ═══════════════════════════════════════════════════════════════
 
-    class AtmosphericMusic {
-      constructor() {
-        // 📱 DEVICE DETECTION - Mobile vs Desktop
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
-                      || (window.innerWidth <= 768);
-        
-        // 🎚️ AUDIO SETTINGS podle zařízení
-        const audioSettings = isMobile ? {
-          sampleRate: 22050,    // 📱 Mobil: nižší sample rate
-          latencyHint: 'playback',
-          bufferDuration: 8     // 8s buffer proti praskání
-        } : {
-          sampleRate: 44100,    // 💻 PC: plný zvuk
-          latencyHint: 'playback',
-          bufferDuration: 4     // 4s buffer
-        };
-        
-        console.log(`🎵 Audio: ${isMobile ? '📱 Mobile' : '💻 Desktop'} mode - ${audioSettings.sampleRate}Hz, ${audioSettings.bufferDuration}s buffer`);
-        
-        // Create AudioContext s adaptive settings
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-          sampleRate: audioSettings.sampleRate,
-          latencyHint: audioSettings.latencyHint
-        });
-        
-        this.bufferDuration = audioSettings.bufferDuration;
-        this.isMobile = isMobile;
-        
-        this.masterGain = this.audioContext.createGain();
-        
-        const savedVolume = localStorage.getItem('musicVolume') || 30;
-        this.masterGain.gain.value = savedVolume / 100;
-        
-        this.masterGain.connect(this.audioContext.destination);
-        
-        this.isPlaying = false;
-        this.currentTrack = null;
-        this.currentSeason = 0; // 0=spring, 1=summer, 2=autumn, 3=winter
-        
-        // Track definitions with medieval names
-        this.tracks = {
-          spring: [
-            {
-              name: '🌸 Ambient Jara - Tiché Procitání',
-              duration: 600, // 10 minutes
-              instruments: ['deep_bass', 'sparse_chimes'],
-              tempo: 'very_slow' // ~60 BPM
-            },
-            {
-              name: '🌸 Píseň Jarního Procitnutí',
-              duration: 600,
-              instruments: ['flute', 'harp', 'bells'],
-              tempo: 'moderate'
-            }
-          ],
-          summer: [{
-            name: '☀️ Tanec Slunečního Krále',
-            duration: 600,
-            instruments: ['lute', 'tambourine', 'triangle'],
-            tempo: 'lively'
-          }],
-          autumn: [{
-            name: '🍂 Balada Padajícího Listí',
-            duration: 600,
-            instruments: ['harp', 'crotals', 'sistrum'],
-            tempo: 'slow'
-          }],
-          winter: [{
-            name: '❄️ Koleda Mrazivých Nocí',
-            duration: 600,
-            instruments: ['bells', 'chimes', 'cymbals'],
-            tempo: 'solemn'
-          }]
-        };
-        
-        this.scheduledNotes = [];
-        this.startTime = 0;
-        this.currentTrackIndex = 0; // Pro playlist
-        this.activeOscillators = []; // Pro stopování aktivních not
-        this.trackTimeout = null; // Pro canceling plánovaného loopu
-      }
-
-      // Generate notes for specific instrument type
-      generateInstrumentNotes(instrument, duration, startTime) {
-        const notes = [];
-        const baseFreq = 220; // A3
-        
-        switch(instrument) {
-          case 'deep_bass':
-            // Deep ambient bass drone (70 BPM max)
-            // Dlouhé, pomalu se měnící basové tóny
-            const bassDuration = duration;
-            const chordChangeDuration = 16; // Změna každých 16 sekund
-            
-            for (let t = 0; t < bassDuration; t += chordChangeDuration) {
-              // Basové akordické tóny (pentatonika v C)
-              const bassNotes = [
-                [65.41, 82.41],   // C2 + E2
-                [73.42, 87.31],   // D2 + F2
-                [98.00, 123.47],  // G2 + B2
-                [82.41, 110.00]   // E2 + A2
-              ];
-              
-              const chord = bassNotes[Math.floor(Math.random() * bassNotes.length)];
-              
-              // Každý tón v akordu
-              chord.forEach((freq, i) => {
-                notes.push({
-                  time: startTime + t + (i * 0.5), // Mírný stagger
-                  frequency: freq,
-                  duration: chordChangeDuration + 2, // Překryv
-                  type: 'sine',
-                  instrument: 'deep_bass',
-                  volume: 0.15 + (Math.random() * 0.05) // Jemné kolísání
-                });
-              });
-            }
-            break;
-
-          case 'sparse_chimes':
-            // Kakofonické, řídké cinkání (70 BPM = 0.857s na beat)
-            const beatInterval = 60 / 70; // ~0.857 sekund
-            
-            for (let t = 0; t < duration; t += beatInterval * 4) { // Každý 4. beat
-              if (Math.random() > 0.4) { // 60% šance na zahrání
-                
-                // Náhodné frekvence z lydické škály (éterické)
-                const chimeFreqs = [
-                  523.25, // C5
-                  587.33, // D5
-                  659.25, // E5
-                  739.99, // F#5 (lydické)
-                  783.99, // G5
-                  880.00, // A5
-                  987.77, // B5
-                  1046.50 // C6
-                ];
-                
-                // Vyberu 1-3 náhodné tóny najednou (kakofonický efekt)
-                const numNotes = Math.floor(Math.random() * 3) + 1;
-                const selectedFreqs = [];
-                
-                for (let n = 0; n < numNotes; n++) {
-                  selectedFreqs.push(chimeFreqs[Math.floor(Math.random() * chimeFreqs.length)]);
-                }
-                
-                selectedFreqs.forEach((freq, i) => {
-                  notes.push({
-                    time: startTime + t + (i * 0.05), // Velmi mírný stagger
-                    frequency: freq * (0.98 + Math.random() * 0.04), // Detuning
-                    duration: 3 + Math.random() * 2, // 3-5 sekund (dlouhé doznívání)
-                    type: 'sine',
-                    instrument: 'sparse_chimes',
-                    shimmer: true,
-                    volume: 0.1 + (Math.random() * 0.08) // Jemná hlasitost
-                  });
-                });
-              }
-            }
-            break;
-            
-          case 'flute':
-            // Light, airy melody
-            for (let t = 0; t < duration; t += 0.8) {
-              const scale = [0, 2, 4, 5, 7, 9, 11, 12];
-              const note = scale[Math.floor(Math.random() * scale.length)];
-              notes.push({
-                time: startTime + t,
-                frequency: baseFreq * Math.pow(2, (note + 12) / 12),
-                duration: 0.6,
-                type: 'sine',
-                instrument: 'flute'
-              });
-            }
-            break;
-            
-          case 'harp':
-            // Arpeggiated chords
-            for (let t = 0; t < duration; t += 1.5) {
-              const chord = [0, 4, 7, 12];
-              chord.forEach((note, i) => {
-                notes.push({
-                  time: startTime + t + (i * 0.15),
-                  frequency: baseFreq * Math.pow(2, note / 12),
-                  duration: 1.2,
-                  type: 'triangle',
-                  instrument: 'harp'
-                });
-              });
-            }
-            break;
-            
-          case 'bells':
-            // Chiming bells
-            for (let t = 0; t < duration; t += 2.5) {
-              const bellNotes = [0, 7, 12, 19];
-              const note = bellNotes[Math.floor(Math.random() * bellNotes.length)];
-              notes.push({
-                time: startTime + t,
-                frequency: baseFreq * 2 * Math.pow(2, note / 12),
-                duration: 2.0,
-                type: 'sine',
-                instrument: 'bells',
-                shimmer: true
-              });
-            }
-            break;
-            
-          case 'lute':
-            // Plucked strings
-            for (let t = 0; t < duration; t += 0.5) {
-              const scale = [0, 2, 3, 5, 7, 8, 10];
-              const note = scale[Math.floor(Math.random() * scale.length)];
-              notes.push({
-                time: startTime + t,
-                frequency: baseFreq * Math.pow(2, note / 12),
-                duration: 0.4,
-                type: 'triangle',
-                instrument: 'lute',
-                pluck: true
-              });
-            }
-            break;
-            
-          case 'tambourine':
-            // Rhythmic jingles
-            for (let t = 0; t < duration; t += 0.25) {
-              if (Math.random() > 0.3) {
-                notes.push({
-                  time: startTime + t,
-                  frequency: 2000 + Math.random() * 1000,
-                  duration: 0.1,
-                  type: 'square',
-                  instrument: 'tambourine',
-                  noise: true
-                });
-              }
-            }
-            break;
-            
-          case 'triangle':
-            // Clear metallic pings
-            for (let t = 0; t < duration; t += 3) {
-              notes.push({
-                time: startTime + t,
-                frequency: 2500,
-                duration: 1.5,
-                type: 'sine',
-                instrument: 'triangle',
-                metallic: true
-              });
-            }
-            break;
-            
-          case 'crotals':
-            // Small cymbals
-            for (let t = 0; t < duration; t += 1.2) {
-              notes.push({
-                time: startTime + t,
-                frequency: 1800 + Math.random() * 500,
-                duration: 0.8,
-                type: 'square',
-                instrument: 'crotals',
-                shimmer: true
-              });
-            }
-            break;
-            
-          case 'chimes':
-            // Bell chimes cascade
-            for (let t = 0; t < duration; t += 4) {
-              const chimeNotes = [0, 2, 4, 7, 9, 12];
-              chimeNotes.forEach((note, i) => {
-                notes.push({
-                  time: startTime + t + (i * 0.2),
-                  frequency: baseFreq * 3 * Math.pow(2, note / 12),
-                  duration: 2.0,
-                  type: 'sine',
-                  instrument: 'chimes',
-                  shimmer: true
-                });
-              });
-            }
-            break;
-            
-          case 'cymbals':
-            // Accent hits
-            for (let t = 0; t < duration; t += 8) {
-              notes.push({
-                time: startTime + t,
-                frequency: 3000,
-                duration: 3.0,
-                type: 'square',
-                instrument: 'cymbals',
-                noise: true,
-                metallic: true
-              });
-            }
-            break;
-            
-          case 'sistrum':
-            // Rattling metal
-            for (let t = 0; t < duration; t += 0.15) {
-              if (Math.random() > 0.4) {
-                notes.push({
-                  time: startTime + t,
-                  frequency: 1500 + Math.random() * 2000,
-                  duration: 0.08,
-                  type: 'square',
-                  instrument: 'sistrum',
-                  noise: true
-                });
-              }
-            }
-            break;
-        }
-        
-        return notes;
-      }
-
-      playNote(note) {
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        
-        osc.type = note.type;
-        osc.frequency.value = note.frequency;
-        
-        // Special effects
-        if (note.shimmer) {
-          const lfo = this.audioContext.createOscillator();
-          const lfoGain = this.audioContext.createGain();
-          lfo.frequency.value = 5;
-          lfoGain.gain.value = 3;
-          lfo.connect(lfoGain);
-          lfoGain.connect(osc.frequency);
-          lfo.start();
-          lfo.stop(note.time + note.duration);
-        }
-        
-        // Use custom volume if provided, otherwise use defaults
-        const baseVolume = note.volume || 0.08;
-        
-        if (note.pluck) {
-          gain.gain.setValueAtTime(baseVolume * 3.75, note.time);
-          gain.gain.exponentialRampToValueAtTime(0.01, note.time + note.duration);
-        } else if (note.metallic) {
-          gain.gain.setValueAtTime(baseVolume * 1.875, note.time);
-          gain.gain.exponentialRampToValueAtTime(0.01, note.time + note.duration);
-        } else if (note.noise) {
-          gain.gain.setValueAtTime(baseVolume * 0.625, note.time);
-          gain.gain.exponentialRampToValueAtTime(0.001, note.time + note.duration);
-        } else {
-          gain.gain.setValueAtTime(baseVolume, note.time);
-          gain.gain.linearRampToValueAtTime(baseVolume * 1.5, note.time + note.duration * 0.3);
-          gain.gain.exponentialRampToValueAtTime(0.01, note.time + note.duration);
-        }
-        
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-        
-        osc.start(note.time);
-        osc.stop(note.time + note.duration);
-        
-        // Sleduj aktivní oscilátory
-        this.activeOscillators.push({ osc, gain });
-        
-        // Auto-cleanup po skončení noty
-        setTimeout(() => {
-          const index = this.activeOscillators.findIndex(item => item.osc === osc);
-          if (index > -1) {
-            this.activeOscillators.splice(index, 1);
-          }
-        }, (note.time - this.audioContext.currentTime + note.duration) * 1000 + 100);
-      }
-
-      generateTrack(seasonKey) {
-        const playlist = this.tracks[seasonKey];
-        const notes = [];
-        
-        // Pokud je to playlist, vyberu aktuální track
-        let track;
-        if (Array.isArray(playlist)) {
-          track = playlist[this.currentTrackIndex];
-        } else {
-          track = playlist;
-        }
-        
-        track.instruments.forEach(instrument => {
-          const instrumentNotes = this.generateInstrumentNotes(
-            instrument,
-            track.duration,
-            this.audioContext.currentTime
-          );
-          notes.push(...instrumentNotes);
-        });
-        
-        return notes;
-      }
-
-      stopAllNotes() {
-        // Zastaví všechny aktivní oscilátory s fade-outem
-        const now = this.audioContext.currentTime;
-        const fadeTime = 0.5; // 500ms fade out
-        
-        this.activeOscillators.forEach(({ osc, gain }) => {
-          try {
-            // Fade out
-            gain.gain.cancelScheduledValues(now);
-            gain.gain.setValueAtTime(gain.gain.value, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + fadeTime);
-            
-            // Stop oscillator after fade
-            osc.stop(now + fadeTime);
-          } catch (e) {
-            // Already stopped, ignore
-          }
-        });
-        
-        // Vyčisti pole
-        setTimeout(() => {
-          this.activeOscillators = [];
-        }, fadeTime * 1000 + 100);
-      }
-
-      play(seasonIndex = 0, forceFirstTrack = false) {
-        // Zastav všechny staré noty s fade-outem (pokud něco hraje)
-        if (this.activeOscillators.length > 0) {
-          this.stopAllNotes();
-          // Počkej na fade-out před přehráním nového tracku
-          setTimeout(() => {
-            this.playTrack(seasonIndex, forceFirstTrack);
-          }, 600); // 500ms fade + 100ms buffer
-        } else {
-          this.playTrack(seasonIndex, forceFirstTrack);
-        }
-      }
-
-      playTrack(seasonIndex, forceFirstTrack = false) {
-        if (this.isPlaying) return;
-        
-        const seasons = ['spring', 'summer', 'autumn', 'winter'];
-        this.currentSeason = seasonIndex;
-        const seasonKey = seasons[this.currentSeason];
-        const playlist = this.tracks[seasonKey];
-        
-        // Vyberu track z playlistu
-        if (Array.isArray(playlist)) {
-          // Pro první spuštění nebo změnu sezóny: VŽDY první track (ambient)
-          // Pro loop: náhodný track
-          if (forceFirstTrack) {
-            this.currentTrackIndex = 0; // VŽDY první track = ambient
-          } else {
-            this.currentTrackIndex = Math.floor(Math.random() * playlist.length);
-          }
-          
-          const track = playlist[this.currentTrackIndex];
-          
-          console.log(`🎵 Playing: ${track.name} (${this.currentTrackIndex + 1}/${playlist.length})`);
-          
-          this.startTime = this.audioContext.currentTime;
-          this.scheduledNotes = this.generateTrack(seasonKey);
-          
-          this.scheduledNotes.forEach(note => {
-            this.playNote(note);
-          });
-          
-          this.isPlaying = true;
-          
-          // Update UI with track name
-          this.updateTrackDisplay(seasonKey);
-          
-          // Loop after track ends - vybere další náhodný track
-          const trackDuration = track.duration * 1000;
-          this.trackTimeout = setTimeout(() => {
-            this.isPlaying = false;
-            if (localStorage.getItem('musicEnabled') !== 'false') {
-              this.play(this.currentSeason); // Loop bez forceFirstTrack = random
-            }
-          }, trackDuration);
-        } else {
-          // Fallback pro backward compatibility (single track)
-          this.startTime = this.audioContext.currentTime;
-          this.scheduledNotes = this.generateTrack(seasonKey);
-          
-          this.scheduledNotes.forEach(note => {
-            this.playNote(note);
-          });
-          
-          this.isPlaying = true;
-          this.updateTrackDisplay(seasonKey);
-          
-          const trackDuration = playlist.duration * 1000;
-          this.trackTimeout = setTimeout(() => {
-            this.isPlaying = false;
-            if (localStorage.getItem('musicEnabled') !== 'false') {
-              this.play(this.currentSeason);
-            }
-          }, trackDuration);
-        }
-      }
-
-      updateTrackDisplay(seasonKey) {
-        const playlist = this.tracks[seasonKey];
-        let trackName = '';
-        
-        if (Array.isArray(playlist)) {
-          const track = playlist[this.currentTrackIndex];
-          trackName = track.name;
-        } else {
-          trackName = playlist.name;
-        }
-        
-        const label = document.getElementById('track-name');
-        if (label) {
-          label.textContent = trackName;
-          // Keep visible in footer (no fade out)
-        }
-      }
-
-      stop() {
-        this.isPlaying = false;
-        this.activeOscillators = []; // Vyčisti pole oscilátorů
-        
-        // Zruš naplánovaný loop
-        if (this.trackTimeout) {
-          clearTimeout(this.trackTimeout);
-          this.trackTimeout = null;
-        }
-        
-        this.audioContext.close();
-        
-        // 🎚️ Recreate AudioContext s adaptive settings (same as constructor)
-        const audioSettings = this.isMobile ? {
-          sampleRate: 22050,
-          latencyHint: 'playback'
-        } : {
-          sampleRate: 44100,
-          latencyHint: 'playback'
-        };
-        
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-          sampleRate: audioSettings.sampleRate,
-          latencyHint: audioSettings.latencyHint
-        });
-        
-        this.masterGain = this.audioContext.createGain();
-        const savedVolume = localStorage.getItem('musicVolume') || 30;
-        this.masterGain.gain.value = savedVolume / 100;
-        this.masterGain.connect(this.audioContext.destination);
-      }
-
-      toggle() {
-        if (this.isPlaying) {
-          // Currently playing -> STOP
-          this.stop();
-          localStorage.setItem('musicEnabled', 'false');
-          document.getElementById('music-toggle-btn').textContent = '🔇';
-        } else {
-          // Not playing -> START
-          localStorage.setItem('musicEnabled', 'true');
-          document.getElementById('music-toggle-btn').textContent = '🔊';
-          this.play(this.currentSeason, true); // forceFirstTrack = true
-        }
-      }
-
-      setVolume(value) {
-        this.masterGain.gain.value = value / 100;
-        localStorage.setItem('musicVolume', value);
-        document.getElementById('volume-label').textContent = value + '%';
-      }
-
-      changeSeason(seasonIndex) {
-        if (seasonIndex !== this.currentSeason && this.isPlaying) {
-          console.log(`🍂 Season change: ${this.currentSeason} → ${seasonIndex}`);
-          
-          // Zruš naplánovaný loop současného tracku
-          if (this.trackTimeout) {
-            clearTimeout(this.trackTimeout);
-            this.trackTimeout = null;
-          }
-          
-          // Zastav současný track s fade-outem
-          this.isPlaying = false; // Označ jako "zastavující se"
-          
-          if (this.activeOscillators.length > 0) {
-            this.stopAllNotes();
-            
-            // Po fade-outu spusť nový track pro novou sezónu (VŽDY první track)
-            setTimeout(() => {
-              this.currentSeason = seasonIndex;
-              this.play(seasonIndex, true); // forceFirstTrack = true
-            }, 600);
-          } else {
-            // Žádné aktivní noty, spusť rovnou
-            this.currentSeason = seasonIndex;
-            this.play(seasonIndex, true); // forceFirstTrack = true
-          }
-        } else if (seasonIndex !== this.currentSeason && !this.isPlaying) {
-          // Pokud nehraje, jen updatuj currentSeason
-          this.currentSeason = seasonIndex;
-        }
-      }
-    }
+    // ⚠️ MUSIC SYSTEM DISABLED (ES6 class not supported in Apps Script)
+    
 
     // ═══════════════════════════════════════════════════════════════
     // 🔊 SOUND EFFECTS SYSTEM
     // ═══════════════════════════════════════════════════════════════
 
-    class SoundEffects {
-      constructor() {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        this.masterGain = this.audioContext.createGain();
-        this.masterGain.gain.value = 0.3;
-        this.masterGain.connect(this.audioContext.destination);
-      }
-
-      playSound(type) {
-        const now = this.audioContext.currentTime;
-        
-        switch(type) {
-          case 'craft':
-            this.playCraftSound(now);
-            break;
-          case 'gather':
-            this.playGatherSound(now);
-            break;
-          case 'nextDay':
-            this.playNextDaySound(now);
-            break;
-          case 'combat':
-            this.playCombatSound(now);
-            break;
-          case 'win':
-            this.playWinSound(now);
-            break;
-          case 'lose':
-            this.playLoseSound(now);
-            break;
-          case 'buy':
-            this.playBuySound(now);
-            break;
-          case 'sell':
-            this.playSellSound(now);
-            break;
-          case 'alert':
-            this.playAlertSound(now);
-            break;
-        }
-      }
-
-      playCraftSound(time) {
-        // Hammer hitting anvil
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        
-        osc.type = 'square';
-        osc.frequency.value = 150;
-        gain.gain.setValueAtTime(0.3, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
-        
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-        osc.start(time);
-        osc.stop(time + 0.1);
-        
-        // Second hit
-        const osc2 = this.audioContext.createOscillator();
-        const gain2 = this.audioContext.createGain();
-        osc2.type = 'square';
-        osc2.frequency.value = 180;
-        gain2.gain.setValueAtTime(0.3, time + 0.15);
-        gain2.gain.exponentialRampToValueAtTime(0.01, time + 0.25);
-        osc2.connect(gain2);
-        gain2.connect(this.masterGain);
-        osc2.start(time + 0.15);
-        osc2.stop(time + 0.25);
-      }
-
-      playGatherSound(time) {
-        // Rustling/picking sound
-        for (let i = 0; i < 3; i++) {
-          const osc = this.audioContext.createOscillator();
-          const gain = this.audioContext.createGain();
-          osc.type = 'sine';
-          osc.frequency.value = 800 + Math.random() * 400;
-          gain.gain.setValueAtTime(0.1, time + i * 0.05);
-          gain.gain.exponentialRampToValueAtTime(0.01, time + i * 0.05 + 0.1);
-          osc.connect(gain);
-          gain.connect(this.masterGain);
-          osc.start(time + i * 0.05);
-          osc.stop(time + i * 0.05 + 0.1);
-        }
-      }
-
-      playNextDaySound(time) {
-        // Bell chime (velmi tichá verze s lineárním gain a atenuátorem)
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        const attenuator = this.audioContext.createGain(); // Extra gain stage pro jemné doladění
-        
-        osc.type = 'sine';
-        osc.frequency.value = 480;
-        
-        // První gain stage - lineární fade out (plynulejší)
-        gain.gain.setValueAtTime(0.001, time); // Sníženo z 0.08 na 0.05
-        gain.gain.linearRampToValueAtTime(0, time + 1.5); // Lineární místo exponenciálního
-        
-        // Druhý gain stage - globální attenuator
-        attenuator.gain.value = 0.1; // Další 40% redukce
-        
-        // Chain: osc → gain → attenuator → masterGain
-        osc.connect(gain);
-        gain.connect(attenuator);
-        attenuator.connect(this.masterGain);
-        
-        osc.start(time);
-        osc.stop(time + 1.5);
-      }
-
-      playCombatSound(time) {
-        // Sword clash
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        osc.type = 'square';
-        osc.frequency.value = 300;
-        gain.gain.setValueAtTime(0.4, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-        osc.start(time);
-        osc.stop(time + 0.2);
-      }
-
-      playWinSound(time) {
-        // Victory fanfare
-        const notes = [523, 659, 784, 1047]; // C-E-G-C
-        notes.forEach((freq, i) => {
-          const osc = this.audioContext.createOscillator();
-          const gain = this.audioContext.createGain();
-          osc.type = 'sine';
-          osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.2, time + i * 0.15);
-          gain.gain.exponentialRampToValueAtTime(0.01, time + i * 0.15 + 0.4);
-          osc.connect(gain);
-          gain.connect(this.masterGain);
-          osc.start(time + i * 0.15);
-          osc.stop(time + i * 0.15 + 0.4);
-        });
-      }
-
-      playLoseSound(time) {
-        // Descending sad notes
-        const notes = [392, 349, 330, 294]; // G-F-E-D
-        notes.forEach((freq, i) => {
-          const osc = this.audioContext.createOscillator();
-          const gain = this.audioContext.createGain();
-          osc.type = 'sine';
-          osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.15, time + i * 0.2);
-          gain.gain.exponentialRampToValueAtTime(0.01, time + i * 0.2 + 0.5);
-          osc.connect(gain);
-          gain.connect(this.masterGain);
-          osc.start(time + i * 0.2);
-          osc.stop(time + i * 0.2 + 0.5);
-        });
-      }
-
-      playBuySound(time) {
-        // Cash register cha-ching
-        const osc1 = this.audioContext.createOscillator();
-        const gain1 = this.audioContext.createGain();
-        osc1.type = 'sine';
-        osc1.frequency.value = 1000;
-        gain1.gain.setValueAtTime(0.2, time);
-        gain1.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
-        osc1.connect(gain1);
-        gain1.connect(this.masterGain);
-        osc1.start(time);
-        osc1.stop(time + 0.3);
-        
-        const osc2 = this.audioContext.createOscillator();
-        const gain2 = this.audioContext.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.value = 1200;
-        gain2.gain.setValueAtTime(0.2, time + 0.1);
-        gain2.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
-        osc2.connect(gain2);
-        gain2.connect(this.masterGain);
-        osc2.start(time + 0.1);
-        osc2.stop(time + 0.4);
-      }
-
-      playSellSound(time) {
-        // Coins clinking
-        for (let i = 0; i < 4; i++) {
-          const osc = this.audioContext.createOscillator();
-          const gain = this.audioContext.createGain();
-          osc.type = 'triangle';
-          osc.frequency.value = 800 + Math.random() * 200;
-          gain.gain.setValueAtTime(0.15, time + i * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.01, time + i * 0.08 + 0.15);
-          osc.connect(gain);
-          gain.connect(this.masterGain);
-          osc.start(time + i * 0.08);
-          osc.stop(time + i * 0.08 + 0.15);
-        }
-      }
-
-      playAlertSound(time) {
-        // Warning beep
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        osc.type = 'square';
-        osc.frequency.value = 600;
-        gain.gain.setValueAtTime(0.3, time);
-        gain.gain.setValueAtTime(0, time + 0.1);
-        gain.gain.setValueAtTime(0.3, time + 0.2);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-        osc.start(time);
-        osc.stop(time + 0.4);
-      }
-    }
+    // SoundEffects class removed
+    
       // ═══════════════════════════════════════════════════════════════
       // 🎵 INITIALIZE GAME & MUSIC SYSTEM
       // ═══════════════════════════════════════════════════════════════
 
-    let soundEffects = null;
-    window.onload = () => {
-      // Initialize game
-      game.init();
+    // ═══════════════════════════════════════════════════════════════
+    // 🔍 DEBUG: Verify game object was created
+    // ═══════════════════════════════════════════════════════════════
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('🔍 GAME OBJECT VERIFICATION (before window.onload)');
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('typeof game:', typeof game);
+    console.log('game is defined:', typeof game !== 'undefined');
+    
+    if (typeof game !== 'undefined') {
+      console.log('✅ game object EXISTS at script execution time');
+      console.log('   game.state:', typeof game.state);
+      console.log('   game.init:', typeof game.init);
+      console.log('   game.render:', typeof game.render);
+    } else {
+      console.error('❌ game object DOES NOT EXIST at script execution time!');
+      console.error('   This means there is a syntax error in the game object definition');
+    }
+    console.log('═══════════════════════════════════════════════════════════════\n');
 
-      // Initialize music system
-      window.atmosphericMusic = new AtmosphericMusic();
-      soundEffects = new SoundEffects();
-
-      // Set button state based on localStorage
-      const musicEnabled = localStorage.getItem('musicEnabled') !== 'false';
-      if (musicEnabled) {
-          document.getElementById('music-toggle-btn').textContent = '🔊';
-      } else {
-          document.getElementById('music-toggle-btn').textContent = '🔇';
+    var soundEffects = null;
+    window.onload = function() {
+      // ═══════════════════════════════════════════════════════════════
+      // 🛡️ DEFENSIVE CHECK - Verify game object exists
+      // ═══════════════════════════════════════════════════════════════
+      if (typeof game === 'undefined') {
+        console.error('❌ CRITICAL: game object was NOT created!');
+        console.error('   This should never happen - check for syntax errors above.');
+        document.body.innerHTML = '<div style="color: red; padding: 20px; font-family: monospace;">' +
+          '<h1>❌ Game Object Error</h1>' +
+          '<p>The game object failed to initialize. Check console for details.</p>' +
+          '</div>';
+        return; // Stop execution
       }
       
-      // DON'T auto-play on load - let user start with Next Day or toggle button
+      console.log('✅ game object exists:', typeof game);
+      console.log('   Has init method:', typeof game.init === 'function');
+      
+      // ═══════════════════════════════════════════════════════════════
+      // 🎮 SAFE INITIALIZATION with try-catch
+      // ═══════════════════════════════════════════════════════════════
+      try {
+        // Initialize game
+        game.init();
+        console.log('✅ game.init() completed successfully');
+      } catch (initError) {
+        console.error('❌ ERROR in game.init():', initError);
+        console.error('   Stack:', initError.stack);
+        
+        // Show error to user
+        alert('Game initialization failed. Please refresh the page.\n\nError: ' + initError.message);
+        return; // Stop further initialization
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // 🎵 INITIALIZE MUSIC SYSTEM (after game init succeeds)
+      // ═══════════════════════════════════════════════════════════════
+      try {
+        window.atmosphericMusic = null; // Disabled for ES5
+        soundEffects = null; // Disabled for ES5
+        console.log('✅ Music system initialized');
+      } catch (musicError) {
+        console.error('⚠️ Music system failed (non-critical):', musicError);
+        // Continue - music is not critical
+      }
+
+      // Set button state based on localStorage
+      try {
+        var musicEnabled = localStorage.getItem('musicEnabled') !== 'false';
+        var musicBtn = document.getElementById('music-toggle-btn');
+        if (musicBtn) {
+          musicBtn.textContent = musicEnabled ? '🔊' : '🔇';
+        }
+      } catch (storageError) {
+        console.error('⚠️ localStorage access failed (non-critical):', storageError);
+      }
+      
+      // DON'T auto-play on load - var user start with Next Day or toggle button
+      console.log('✅ Game fully initialized and ready to play!');
     }
     </script>  <!-- KONEC JavaScriptu -->
 
 
 </body>
 </html>
-
-
-
-
-
-

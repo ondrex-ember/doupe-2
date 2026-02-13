@@ -1613,7 +1613,25 @@ button:active {
         >
           🔊
         </button>
-        
+        <button id="next-track-btn" 
+		  onclick="if(window.atmosphericMusic) window.atmosphericMusic.nextTrack()"
+          title="Další skladba"
+          style="
+			  background: rgba(139, 90, 43, 0.3);
+			  border: 1px solid rgba(212, 165, 116, 0.4);
+			  color: #d4a574;
+			  padding: 6px 10px;
+			  border-radius: 6px;
+			  cursor: pointer;
+			  font-size: 16px;
+			  font-family: 'Space Mono', monospace;
+			  transition: all 0.3s;
+			"
+			onmouseover="this.style.background='rgba(139, 90, 43, 0.5)'"
+			onmouseout="this.style.background='rgba(139, 90, 43, 0.3)'"
+		>
+        >>
+      </button>
         <div style="
           flex: 1;
           overflow: hidden;
@@ -1946,11 +1964,11 @@ async backend(functionName, data = null) {
     barrel: { name: 'Sud na vodu', icon: '🛢️', desc: '+50 kapacita vody', sellPrice: 55 },
     
     // 🍖 COOKING SYSTEM
-    berries: { name: 'Bobule', icon: '🫐', desc: 'Čerstvé lesní bobule', sellPrice: 2 },
+    berries: { name: 'Bobule', icon: '🍒', desc: 'Čerstvé lesní bobule', sellPrice: 2 },
     fish: { name: 'Ryba', icon: '🐟', desc: 'Čerstvá ryba', sellPrice: 6 },
     cooked_meat: { name: 'Uvařené maso', icon: '🍖', desc: '+15 hunger (vs +10 raw)', sellPrice: 15 },
     fish_stew: { name: 'Rybí polévka', icon: '🍲', desc: '+20 hunger +5 water', sellPrice: 20 },
-    berry_jam: { name: 'Džem z bobulí', icon: '🫙', desc: '+8 hunger, dlouhá životnost', sellPrice: 12 },
+    berry_jam: { name: 'Džem z bobulí', icon: '🥫', desc: '+8 hunger, dlouhá životnost', sellPrice: 12 },
     },
 
   recipes: [
@@ -2178,7 +2196,7 @@ async backend(functionName, data = null) {
     {
       id: 'berry_jam',
       name: 'Džem z bobulí',
-      icon: '🫙',
+      icon: '🥫',
       materials: { berries: 5 },
       requiresFire: true,
       result: { berry_jam: 2 },
@@ -2489,14 +2507,93 @@ async backend(functionName, data = null) {
     playerIcon: '🏹',
     enemyIcon: '🗡️',
     gameActive: false,
+    gameType: 'tictactoe', // 'tictactoe', 'go', 'dnd'
     
-    init(threat) {
+    // D&D-specific properties
+    playerHP: 0,
+    playerMaxHP: 0,
+    enemyHP: 0,
+    enemyMaxHP: 0,
+    playerAttack: 5,
+    playerDefense: 3,
+    enemyAttack: 3,
+    enemyDefense: 2,
+    combatLog: [],
+    
+    // Go-specific properties
+    capturedStones: { player: 0, enemy: 0 },
+    maxTurns: 30,
+    currentTurn: 0,
+    passCount: 0,
+    lastMove: null,
+    
+    init(threat, gameType = 'tictactoe') {
       this.currentThreat = threat;
+      this.gameType = gameType;
       this.size = threat.boardSize || 8;
       this.playerIcon = threat.playerIcon;
       this.enemyIcon = threat.enemyIcon;
       this.board = Array(this.size).fill(null).map(() => Array(this.size).fill(null));
       this.gameActive = true;
+      this.combatLog = [];
+      
+      // Init D&D if needed
+      if (gameType === 'dnd') {
+        this.initDnD(threat);
+      }
+      
+      // Init Go if needed
+      if (gameType === 'go') {
+        this.initGo(threat);
+      }
+    },
+    
+    initGo(threat) {
+      this.capturedStones = { player: 0, enemy: 0 };
+      this.currentTurn = 0;
+      this.passCount = 0;
+      this.lastMove = null;
+      
+      // Max turns based on difficulty
+      const turnMap = {
+        easy: 20,
+        medium: 30,
+        hard: 40,
+        expert: 50
+      };
+      this.maxTurns = turnMap[threat.aiDifficulty] || 30;
+      
+      this.combatLog.push(`⚫⚪ Hra Go začíná! Max tahů: ${this.maxTurns}`);
+    },
+    
+    initDnD(threat) {
+      // Calculate player HP from food (but DON'T consume it!)
+      const food = game.state.inventory.food || 0;
+      this.playerMaxHP = Math.max(20, food * 5); // Min 20 HP
+      this.playerHP = this.playerMaxHP;
+      
+      // Enemy HP based on difficulty
+      const hpMap = {
+        easy: 30,
+        medium: 50,
+        hard: 70,
+        expert: 100
+      };
+      this.enemyMaxHP = hpMap[threat.aiDifficulty] || 50;
+      this.enemyHP = this.enemyMaxHP;
+      
+      // Adjust enemy stats based on difficulty
+      const statsMap = {
+        easy: { attack: 2, defense: 1 },
+        medium: { attack: 3, defense: 2 },
+        hard: { attack: 4, defense: 3 },
+        expert: { attack: 5, defense: 4 }
+      };
+      const stats = statsMap[threat.aiDifficulty] || { attack: 3, defense: 2 };
+      this.enemyAttack = stats.attack;
+      this.enemyDefense = stats.defense;
+      
+      this.combatLog.push(`⚔️ Boj začíná! Tvoje HP: ${this.playerHP}/${this.playerMaxHP} | ${threat.name} HP: ${this.enemyHP}/${this.enemyMaxHP}`);
     },
     
     makeMove(row, col) {
@@ -2510,7 +2607,13 @@ async backend(functionName, data = null) {
         return 'player_win';
       }
       
-      // Check draw
+      // 🎯 Check if game is dead (no one can win anymore)
+      if (!this.canAnyoneWin()) {
+        this.gameActive = false;
+        return 'draw';
+      }
+      
+      // Check draw (board full)
       if (this.isBoardFull()) {
         this.gameActive = false;
         return 'draw';
@@ -2523,6 +2626,10 @@ async backend(functionName, data = null) {
         if (this.checkWin('enemy')) {
           this.gameActive = false;
           game.handleCombatEnd(false);
+        } else if (!this.canAnyoneWin()) {
+          // 🎯 Check dead game after AI move
+          this.gameActive = false;
+          game.handleCombatEnd(true); // draw = player win (no penalty)
         } else if (this.isBoardFull()) {
           this.gameActive = false;
           game.handleCombatEnd(true); // draw = player win
@@ -2736,6 +2843,491 @@ async backend(functionName, data = null) {
     
     isBoardFull() {
       return this.board.every(row => row.every(cell => cell !== null));
+    },
+    
+    // 🎯 Check if anyone can still win (make 5 in a row)
+    canAnyoneWin() {
+      // For each position, check if it can be part of a winning sequence
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          // Check all 4 directions from this position
+          const directions = [
+            [0, 1],   // horizontal →
+            [1, 0],   // vertical ↓
+            [1, 1],   // diagonal ↘
+            [1, -1]   // diagonal ↙
+          ];
+          
+          for (const [dr, dc] of directions) {
+            // Check if a 5-sequence is possible in this direction
+            if (this.canMakeFiveInDirection(r, c, dr, dc)) {
+              return true; // Found at least one possible winning sequence
+            }
+          }
+        }
+      }
+      return false; // No possible winning sequences left → DRAW
+    },
+    
+    canMakeFiveInDirection(startR, startC, dr, dc) {
+      // Check if 5 cells in this direction can form a winning line
+      let playerCount = 0;
+      let enemyCount = 0;
+      let nullCount = 0;
+      
+      for (let i = 0; i < 5; i++) {
+        const r = startR + i * dr;
+        const c = startC + i * dc;
+        
+        // Out of bounds → this sequence is impossible
+        if (r < 0 || r >= this.size || c < 0 || c >= this.size) {
+          return false;
+        }
+        
+        const cell = this.board[r][c];
+        if (cell === 'player') playerCount++;
+        else if (cell === 'enemy') enemyCount++;
+        else nullCount++;
+      }
+      
+      // A valid winning sequence has:
+      // - All 5 cells are: null, player, or mix of player+null (enemy can't win here)
+      // - All 5 cells are: null, enemy, or mix of enemy+null (player can't win here)
+      // - All 5 cells are: null (either can win)
+      
+      // If both players have pieces in this sequence → impossible
+      if (playerCount > 0 && enemyCount > 0) {
+        return false;
+      }
+      
+      // Otherwise, at least one player can still complete this sequence
+      return true;
+    },
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 🎲 D&D COMBAT ROLLS
+    // ═══════════════════════════════════════════════════════════════
+    
+    playerAttackRoll() {
+      if (!this.gameActive || this.gameType !== 'dnd') return null;
+      
+      // Roll d20 + attack modifier
+      const roll = Math.floor(Math.random() * 20) + 1;
+      const total = roll + this.playerAttack;
+      
+      // Enemy defense roll
+      const enemyRoll = Math.floor(Math.random() * 20) + 1;
+      const enemyTotal = enemyRoll + this.enemyDefense;
+      
+      let result = { playerRoll: roll, playerTotal: total, enemyRoll, enemyTotal, hit: false, damage: 0, critical: false };
+      
+      // Critical hit (natural 20)
+      if (roll === 20) {
+        const damage = Math.floor(Math.random() * 10) + 10; // 10-20 damage on crit
+        this.enemyHP = Math.max(0, this.enemyHP - damage);
+        result.hit = true;
+        result.damage = damage;
+        result.critical = true;
+        this.combatLog.push(`🎯 KRITICKÝ ZÁSAH! Hodil jsi 20! → ${damage} damage na nepřítele!`);
+      }
+      // Hit
+      else if (total > enemyTotal) {
+        const damage = Math.floor(Math.random() * 10) + 5; // 5-15 damage
+        this.enemyHP = Math.max(0, this.enemyHP - damage);
+        result.hit = true;
+        result.damage = damage;
+        this.combatLog.push(`⚔️ Zásah! Tvůj útok ${total} vs obrana ${enemyTotal} → ${damage} damage`);
+      }
+      // Miss
+      else {
+        this.combatLog.push(`❌ Minutí! Tvůj útok ${total} vs obrana ${enemyTotal}`);
+      }
+      
+      return result;
+    },
+    
+    enemyAttackRoll() {
+      if (!this.gameActive || this.gameType !== 'dnd') return null;
+      
+      // Enemy roll d20 + attack modifier
+      const roll = Math.floor(Math.random() * 20) + 1;
+      const total = roll + this.enemyAttack;
+      
+      // Player defense roll
+      const playerRoll = Math.floor(Math.random() * 20) + 1;
+      const playerTotal = playerRoll + this.playerDefense;
+      
+      let result = { enemyRoll: roll, enemyTotal: total, playerRoll, playerTotal, hit: false, damage: 0, critical: false };
+      
+      // Critical hit (natural 20)
+      if (roll === 20) {
+        const damage = Math.floor(Math.random() * 8) + 8; // 8-16 damage on crit
+        this.playerHP = Math.max(0, this.playerHP - damage);
+        result.hit = true;
+        result.damage = damage;
+        result.critical = true;
+        this.combatLog.push(`💥 Nepřítel KRITICKY zasáhl! Hodil 20! → ${damage} damage na tebe!`);
+      }
+      // Hit
+      else if (total > playerTotal) {
+        const damage = Math.floor(Math.random() * 8) + 3; // 3-11 damage
+        this.playerHP = Math.max(0, this.playerHP - damage);
+        result.hit = true;
+        result.damage = damage;
+        this.combatLog.push(`🗡️ Nepřítel zasáhl! Útok ${total} vs tvoje obrana ${playerTotal} → ${damage} damage`);
+      }
+      // Miss
+      else {
+        this.combatLog.push(`🛡️ Blokováno! Útok nepřítele ${total} vs tvoje obrana ${playerTotal}`);
+      }
+      
+      return result;
+    },
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ⚫⚪ GO GAME MECHANICS
+    // ═══════════════════════════════════════════════════════════════
+    
+    makeMove_Go(row, col, player = 'player') {
+      if (!this.gameActive || this.board[row][col]) return false;
+      
+      // Place stone
+      this.board[row][col] = player;
+      this.lastMove = { row, col, player };
+      this.currentTurn++;
+      
+      // Check captures (remove enemy stones with 0 liberties)
+      const enemy = player === 'player' ? 'enemy' : 'player';
+      const captured = this.captureStones(enemy);
+      
+      if (captured > 0) {
+        this.capturedStones[player] += captured;
+        this.combatLog.push(`${player === 'player' ? '⚪' : '⚫'} Zajato ${captured} kamenů!`);
+      }
+      
+      // Check if game should end
+      if (this.currentTurn >= this.maxTurns) {
+        this.gameActive = false;
+        return 'end';
+      }
+      
+      return true;
+    },
+    
+    pass() {
+      this.passCount++;
+      this.combatLog.push(`Pas...`);
+      
+      // If both players pass → end game
+      if (this.passCount >= 2) {
+        this.gameActive = false;
+        return 'end';
+      }
+      
+      return true;
+    },
+    
+    captureStones(player) {
+      let captured = 0;
+      const visited = Array(this.size).fill(null).map(() => Array(this.size).fill(false));
+      
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          if (this.board[r][c] === player && !visited[r][c]) {
+            const group = this.getGroup(r, c, player, visited);
+            const liberties = this.countLiberties(group);
+            
+            // If group has 0 liberties → capture
+            if (liberties === 0) {
+              group.forEach(({r, c}) => {
+                this.board[r][c] = null;
+                captured++;
+              });
+            }
+          }
+        }
+      }
+      
+      return captured;
+    },
+    
+    getGroup(startR, startC, player, visited) {
+      const group = [];
+      const stack = [{r: startR, c: startC}];
+      
+      while (stack.length > 0) {
+        const {r, c} = stack.pop();
+        
+        if (r < 0 || r >= this.size || c < 0 || c >= this.size) continue;
+        if (visited[r][c]) continue;
+        if (this.board[r][c] !== player) continue;
+        
+        visited[r][c] = true;
+        group.push({r, c});
+        
+        // Add neighbors to stack
+        stack.push({r: r-1, c});
+        stack.push({r: r+1, c});
+        stack.push({r, c: c-1});
+        stack.push({r, c: c+1});
+      }
+      
+      return group;
+    },
+    
+    countLiberties(group) {
+      const liberties = new Set();
+      
+      group.forEach(({r, c}) => {
+        // Check 4 neighbors
+        const neighbors = [
+          {r: r-1, c},
+          {r: r+1, c},
+          {r, c: c-1},
+          {r, c: c+1}
+        ];
+        
+        neighbors.forEach(({r: nr, c: nc}) => {
+          if (nr >= 0 && nr < this.size && nc >= 0 && nc < this.size) {
+            if (this.board[nr][nc] === null) {
+              liberties.add(`${nr},${nc}`);
+            }
+          }
+        });
+      });
+      
+      return liberties.size;
+    },
+    
+    calculateGoWinner() {
+      // Count territory for each player
+      const playerTerritory = this.countTerritory('player');
+      const enemyTerritory = this.countTerritory('enemy');
+      
+      // Add captured stones to score
+      const playerScore = playerTerritory + this.capturedStones.enemy;
+      const enemyScore = enemyTerritory + this.capturedStones.player;
+      
+      this.combatLog.push(`⚪ Tvoje skóre: ${playerScore} (území: ${playerTerritory} + zajato: ${this.capturedStones.enemy})`);
+      this.combatLog.push(`⚫ Nepřítel: ${enemyScore} (území: ${enemyTerritory} + zajato: ${this.capturedStones.player})`);
+      
+      return playerScore > enemyScore ? 'player_win' : 'enemy_win';
+    },
+    
+    countTerritory(player) {
+      const visited = Array(this.size).fill(null).map(() => Array(this.size).fill(false));
+      let territory = 0;
+      
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          if (this.board[r][c] === null && !visited[r][c]) {
+            const empty = this.getEmptyRegion(r, c, visited);
+            const borders = this.getRegionBorders(empty);
+            
+            // If region borders only one player → that player's territory
+            if (borders.player && !borders.enemy) {
+              territory += empty.length;
+            } else if (borders.enemy && !borders.player) {
+              // Enemy territory (count for enemy)
+            }
+            // else: disputed territory (no one gets points)
+          }
+        }
+      }
+      
+      return territory;
+    },
+    
+    getEmptyRegion(startR, startC, visited) {
+      const region = [];
+      const stack = [{r: startR, c: startC}];
+      
+      while (stack.length > 0) {
+        const {r, c} = stack.pop();
+        
+        if (r < 0 || r >= this.size || c < 0 || c >= this.size) continue;
+        if (visited[r][c]) continue;
+        if (this.board[r][c] !== null) continue;
+        
+        visited[r][c] = true;
+        region.push({r, c});
+        
+        stack.push({r: r-1, c});
+        stack.push({r: r+1, c});
+        stack.push({r, c: c-1});
+        stack.push({r, c: c+1});
+      }
+      
+      return region;
+    },
+    
+    getRegionBorders(region) {
+      const borders = { player: false, enemy: false };
+      
+      region.forEach(({r, c}) => {
+        const neighbors = [
+          {r: r-1, c},
+          {r: r+1, c},
+          {r, c: c-1},
+          {r, c: c+1}
+        ];
+        
+        neighbors.forEach(({r: nr, c: nc}) => {
+          if (nr >= 0 && nr < this.size && nc >= 0 && nc < this.size) {
+            if (this.board[nr][nc] === 'player') borders.player = true;
+            if (this.board[nr][nc] === 'enemy') borders.enemy = true;
+          }
+        });
+      });
+      
+      return borders;
+    },
+    
+    // Simple AI for Go
+    findGoMove() {
+      const difficulty = this.currentThreat.aiDifficulty;
+      
+      // Easy: Random empty cell
+      if (difficulty === 'easy') {
+        return this.findRandomEmptyCell();
+      }
+      
+      // Medium/Hard: Try to capture or defend
+      if (difficulty === 'medium' || difficulty === 'hard') {
+        // Try to capture enemy stones
+        const captureMove = this.findCaptureMove();
+        if (captureMove) return captureMove;
+        
+        // Try to save own stones
+        const saveMove = this.findSaveMove();
+        if (saveMove) return saveMove;
+        
+        // Fall back to random
+        return this.findRandomEmptyCell();
+      }
+      
+      // Expert: Territory control
+      if (difficulty === 'expert') {
+        const captureMove = this.findCaptureMove();
+        if (captureMove) return captureMove;
+        
+        const saveMove = this.findSaveMove();
+        if (saveMove) return saveMove;
+        
+        const territoryMove = this.findTerritoryMove();
+        if (territoryMove) return territoryMove;
+        
+        return this.findRandomEmptyCell();
+      }
+      
+      return this.findRandomEmptyCell();
+    },
+    
+    findRandomEmptyCell() {
+      const empty = [];
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          if (this.board[r][c] === null) {
+            empty.push({r, c});
+          }
+        }
+      }
+      return empty.length > 0 ? empty[Math.floor(Math.random() * empty.length)] : null;
+    },
+    
+    findCaptureMove() {
+      // Find enemy group with 1 liberty
+      const visited = Array(this.size).fill(null).map(() => Array(this.size).fill(false));
+      
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          if (this.board[r][c] === 'player' && !visited[r][c]) {
+            const group = this.getGroup(r, c, 'player', visited);
+            const liberties = this.getLibertyPositions(group);
+            
+            if (liberties.length === 1) {
+              return liberties[0]; // Capture move!
+            }
+          }
+        }
+      }
+      
+      return null;
+    },
+    
+    findSaveMove() {
+      // Find own group with 1 liberty
+      const visited = Array(this.size).fill(null).map(() => Array(this.size).fill(false));
+      
+      for (let r = 0; r < this.size; r++) {
+        for (let c = 0; c < this.size; c++) {
+          if (this.board[r][c] === 'enemy' && !visited[r][c]) {
+            const group = this.getGroup(r, c, 'enemy', visited);
+            const liberties = this.getLibertyPositions(group);
+            
+            if (liberties.length === 1) {
+              return liberties[0]; // Save move!
+            }
+          }
+        }
+      }
+      
+      return null;
+    },
+    
+    findTerritoryMove() {
+      // Prefer corners and edges
+      const corners = [
+        {r: 0, c: 0}, {r: 0, c: this.size-1},
+        {r: this.size-1, c: 0}, {r: this.size-1, c: this.size-1}
+      ];
+      
+      for (const pos of corners) {
+        if (this.board[pos.r][pos.c] === null) return pos;
+      }
+      
+      // Edges
+      const edges = [];
+      for (let i = 0; i < this.size; i++) {
+        edges.push({r: 0, c: i});
+        edges.push({r: this.size-1, c: i});
+        edges.push({r: i, c: 0});
+        edges.push({r: i, c: this.size-1});
+      }
+      
+      for (const pos of edges) {
+        if (this.board[pos.r][pos.c] === null) return pos;
+      }
+      
+      return null;
+    },
+    
+    getLibertyPositions(group) {
+      const liberties = [];
+      const seen = new Set();
+      
+      group.forEach(({r, c}) => {
+        const neighbors = [
+          {r: r-1, c},
+          {r: r+1, c},
+          {r, c: c-1},
+          {r, c: c+1}
+        ];
+        
+        neighbors.forEach(({r: nr, c: nc}) => {
+          if (nr >= 0 && nr < this.size && nc >= 0 && nc < this.size) {
+            if (this.board[nr][nc] === null) {
+              const key = `${nr},${nc}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                liberties.push({r: nr, c: nc});
+              }
+            }
+          }
+        });
+      });
+      
+      return liberties;
     }
   },
 
@@ -3034,7 +3626,12 @@ async backend(functionName, data = null) {
             🎯 <strong>Cíl:</strong> Udržet kolonii naživu co nejdéle. 
             Sbírej suroviny, craftuj nástroje, přijímej obyvatele a překonávej roční období.
           </p>
-          
+          <b><p>v. 2.35g</p></b>
+            🔥 <strong>Nové minihry a recepty</strong><br>
+            • Nové craft recipes - to musíš zkusit<br>
+			• Nové minihry - k Piškvorkám přibyla hra GO<br>
+			• Nové minihry - basic D&D diceroll<br>
+			• Ladění aplikace
           <b><p>v. 2.12m</p></b>
             🔥 <strong>Nové features</strong><br>
             • Potvrzení restartu hry a stats<br>
@@ -3042,7 +3639,7 @@ async backend(functionName, data = null) {
             • Přidána atmosferická hudba a controls, device recognition w. sample rate adjust<br>
             • Přepínání mezi mody počasí s ovlivněním hry<br>
             • Nová patička
-          <b><p>v. 2.0m</p></b>
+          <b><p>v. 2.0</p></b>
           <p style="margin-bottom: 15px;">
             🔥 <strong>Mechaniky:</strong><br>
             • Sezónní změny každých 15 dní<br>
@@ -3054,7 +3651,7 @@ async backend(functionName, data = null) {
           
           <p style="margin-bottom: 15px;">
             👤 <strong>Autor:</strong> Ondrex's Ember 🔥<br>
-            📅 <strong>Verze:</strong> 2.0 (Únor 2026)<br>
+            📅 <strong>Verze:</strong> Doupě 2 (Únor 2026)<br>
             🔧 <strong>Tech:</strong> Google Apps Script + Sheets<br>
             📬 <strong>Bugs</strong> Opinions? Hate? Contact me by mail: ondrex@gmail.com
           </p>
@@ -5438,8 +6035,11 @@ async backend(functionName, data = null) {
       }
     }
 
-    // Show combat modal
-    this.showCombatModal(threat);
+    // Store threat for later use in mode selection
+    this.pendingThreat = threat;
+
+    // Show combat mode selection modal
+    this.showCombatModeSelectionModal(threat);
 
     // GA4 tracking
     this.track('threat_triggered', {
@@ -5456,19 +6056,140 @@ async backend(functionName, data = null) {
   // ═══════════════════════════════════════════════════════════════
 
   // ═══════════════════════════════════════════════════════════════
-  // 📋 SHOW COMBAT MODAL
+  // 🎮 SHOW COMBAT MODE SELECTION MODAL
   // ═══════════════════════════════════════════════════════════════
-  showCombatModal(threat) {
+  showCombatModeSelectionModal(threat) {
     this.openModal();
 
-    // Init combat system
-    this.combat.init(threat);
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'combat-mode-selection-modal';
+
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-title" style="color: #e67e7b;">⚔️ ZVOLTE TYP SOUBOJE</div>
+        
+        <div style="margin: 20px 0; color: #b89968; text-align: center; font-size: 14px;">
+          Musíte čelit: <strong style="color: #e67e7b;">${threat.name}</strong>
+        </div>
+        
+        <div style="display: grid; gap: 20px; margin: 30px 0;">
+          
+          <!-- Mód A: Piškvorky -->
+          <div class="combat-mode-card" onclick="game.selectCombatMode('tictactoe')" style="
+            background: linear-gradient(135deg, rgba(78, 201, 176, 0.1), rgba(78, 201, 176, 0.05));
+            border: 2px solid rgba(78, 201, 176, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+          " onmouseover="this.style.borderColor='rgba(78, 201, 176, 0.6)'" onmouseout="this.style.borderColor='rgba(78, 201, 176, 0.3)'">
+            <div style="font-size: 48px; text-align: center; margin-bottom: 10px;">🎯</div>
+            <div style="font-size: 20px; font-weight: 700; color: #4ec9b0; text-align: center; margin-bottom: 8px;">
+              Piškvorky
+            </div>
+            <div style="color: #b89968; text-align: center; font-size: 14px; line-height: 1.6; margin-bottom: 12px;">
+              Klasická strategická hra. Udělej 5 v řadě dříve než nepřítel.
+            </div>
+            <div style="text-align: center; color: #8b7355; font-size: 12px;">
+              ⭐ Strategie • 5-10 min
+            </div>
+          </div>
+          
+          <!-- Mód B: Go -->
+          <div class="combat-mode-card" onclick="game.selectCombatMode('go')" style="
+            background: linear-gradient(135deg, rgba(156, 220, 254, 0.1), rgba(156, 220, 254, 0.05));
+            border: 2px solid rgba(156, 220, 254, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+          " onmouseover="this.style.borderColor='rgba(156, 220, 254, 0.6)'" onmouseout="this.style.borderColor='rgba(156, 220, 254, 0.3)'">
+            <div style="font-size: 48px; text-align: center; margin-bottom: 10px;">⚫⚪</div>
+            <div style="font-size: 20px; font-weight: 700; color: #9cdcfe; text-align: center; margin-bottom: 8px;">
+              Go (zjednodušené)
+            </div>
+            <div style="color: #b89968; text-align: center; font-size: 14px; line-height: 1.6; margin-bottom: 12px;">
+              Ovládni území. Obklop nepřátelské kameny a získej body.
+            </div>
+            <div style="text-align: center; color: #8b7355; font-size: 12px;">
+              ⭐⭐ Taktika • 7-15 min
+            </div>
+          </div>
+          
+          <!-- Mód C: D&D Rolls -->
+          <div class="combat-mode-card" onclick="game.selectCombatMode('dnd')" style="
+            background: linear-gradient(135deg, rgba(206, 145, 120, 0.1), rgba(206, 145, 120, 0.05));
+            border: 2px solid rgba(206, 145, 120, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+          " onmouseover="this.style.borderColor='rgba(206, 145, 120, 0.6)'" onmouseout="this.style.borderColor='rgba(206, 145, 120, 0.3)'">
+            <div style="font-size: 48px; text-align: center; margin-bottom: 10px;">🎲</div>
+            <div style="font-size: 20px; font-weight: 700; color: #ce9178; text-align: center; margin-bottom: 8px;">
+              D&D Kostky
+            </div>
+            <div style="color: #b89968; text-align: center; font-size: 14px; line-height: 1.6; margin-bottom: 8px;">
+              Rychlý boj na HP. Hod kostkou a útočď až do posledního dechu!
+            </div>
+            <div style="background: rgba(78, 201, 176, 0.15); padding: 8px; border-radius: 6px; margin-bottom: 12px;">
+              <div style="color: #4ec9b0; text-align: center; font-size: 13px; font-weight: 600;">
+                ✨ Jídlo se NEMAŽE! HP je jen virtuální boj
+              </div>
+            </div>
+            <div style="text-align: center; color: #8b7355; font-size: 12px;">
+              ⭐ Rychlý • Štěstí • 2-5 min
+            </div>
+          </div>
+          
+        </div>
+        
+        <div style="text-align: center; color: #8b7355; font-size: 13px; margin-top: 20px;">
+          💡 Tip: D&D kostky jsou nejrychlejší, Go nejtěžší
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  },
+
+  selectCombatMode(gameType) {
+    // Close mode selection modal
+    this.closeModal('combat-mode-selection-modal');
+    
+    // Get current threat (stored when modal was opened)
+    const threat = this.combat.currentThreat || this.pendingThreat;
+    
+    // Show appropriate combat modal based on selected mode
+    this.showCombatModal(threat, gameType);
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 📋 SHOW COMBAT MODAL
+  // ═══════════════════════════════════════════════════════════════
+  showCombatModal(threat, gameType = 'tictactoe') {
+    this.openModal();
+
+    // Init combat system with selected game type
+    this.combat.init(threat, gameType);
 
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'combat-modal';
 
     const seasonName = this.seasons[this.state.season].name;
+
+    // Game type labels
+    const gameTypeLabels = {
+      tictactoe: '🎯 Piškvorky',
+      go: '⚫⚪ Go',
+      dnd: '🎲 D&D Kostky'
+    };
+    const gameTypeLabel = gameTypeLabels[gameType] || '🎯 Piškvorky';
+
+    // Check if game type is implemented
+    const isImplemented = gameType === 'tictactoe' || gameType === 'dnd' || gameType === 'go';
 
     modal.innerHTML = `
       <div class="modal-content" style="max-width: 600px;">
@@ -5484,26 +6205,141 @@ async backend(functionName, data = null) {
             <span style="color: #e8d5b7; font-size: 12px;">
               ${seasonName} | Den ${this.state.day} | Obtížnost: ${threat.aiDifficulty.toUpperCase()}
             </span>
+            <br>
+            <span style="color: #4ec9b0; font-size: 12px; font-weight: 600; margin-top: 4px; display: inline-block;">
+              Typ: ${gameTypeLabel}
+            </span>
           </div>
         </div>
 
-        <div id="combat-board-container" style="margin: 20px 0; text-align: center;">
-          ${this.renderCombatBoardHTML()}
-        </div>
+        ${gameType === 'tictactoe' ? `
+          <div id="combat-board-container" style="margin: 20px 0; text-align: center;">
+            ${this.renderCombatBoardHTML()}
+          </div>
 
-        <div id="combat-status" style="text-align: center; margin: 18px 0; color: #4ec9b0; font-size: 14px; font-weight: 600;">
-          Tvůj tah: ${threat.playerIcon}
-        </div>
+          <div id="combat-status" style="text-align: center; margin: 18px 0; color: #4ec9b0; font-size: 14px; font-weight: 600;">
+            Tvůj tah: ${threat.playerIcon}
+          </div>
+        ` : gameType === 'go' ? `
+          <!-- Go Combat UI -->
+          <div style="margin: 20px 0;">
+            <!-- Go Status -->
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding: 12px; background: rgba(20, 16, 12, 0.4); border-radius: 8px;">
+              <div id="go-captured" style="color: #b89968; font-size: 13px;">
+                ⚪ Zajato: ${this.combat.capturedStones.player} | ⚫ Zajato: ${this.combat.capturedStones.enemy}
+              </div>
+              <div id="go-turns" style="color: #9cdcfe; font-size: 13px; font-weight: 600;">
+                Zbývá tahů: ${this.combat.maxTurns - this.combat.currentTurn}
+              </div>
+            </div>
+
+            <!-- Go Board -->
+            <div id="combat-board-container" style="margin: 20px 0; text-align: center;">
+              ${this.renderCombatBoardHTML()}
+            </div>
+
+            <!-- Go Control Status -->
+            <div id="combat-status" style="text-align: center; margin: 15px 0; color: #4ec9b0; font-size: 14px; font-weight: 600;">
+              Tvůj tah: ⚪
+            </div>
+
+            <!-- Pass Button -->
+            <div style="text-align: center; margin: 15px 0;">
+              <button class="modal-btn modal-btn-secondary" onclick="game.handleGoPass()" style="padding: 10px 30px;">
+                🔄 Pasovat
+              </button>
+            </div>
+          </div>
+        ` : gameType === 'dnd' ? `
+          <!-- D&D Combat UI -->
+          <div style="margin: 20px 0;">
+            <!-- Player HP Bar -->
+            <div style="margin-bottom: 15px;">
+              <div id="player-hp-text" style="color: #4ec9b0; font-size: 14px; font-weight: 600; margin-bottom: 6px;">
+                🧙 Ty: ${this.combat.playerHP}/${this.combat.playerMaxHP} HP
+              </div>
+              <div style="width: 100%; height: 24px; background: rgba(20, 16, 12, 0.6); border: 2px solid rgba(78, 201, 176, 0.3); border-radius: 12px; overflow: hidden;">
+                <div id="player-hp-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #4ec9b0, #5dd5bd); transition: width 0.5s ease;"></div>
+              </div>
+            </div>
+
+            <!-- Enemy HP Bar -->
+            <div style="margin-bottom: 20px;">
+              <div id="enemy-hp-text" style="color: #e67e7b; font-size: 14px; font-weight: 600; margin-bottom: 6px;">
+                ${threat.icon} ${threat.name}: ${this.combat.enemyHP}/${this.combat.enemyMaxHP} HP
+              </div>
+              <div style="width: 100%; height: 24px; background: rgba(20, 16, 12, 0.6); border: 2px solid rgba(230, 126, 123, 0.3); border-radius: 12px; overflow: hidden;">
+                <div id="enemy-hp-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #e67e7b, #ef9a9a); transition: width 0.5s ease;"></div>
+              </div>
+            </div>
+
+            <!-- Attack Button -->
+            <div style="text-align: center; margin: 25px 0;">
+              <button id="dnd-attack-btn" class="modal-btn modal-btn-primary" onclick="game.handleDndAttack()" style="
+                font-size: 18px;
+                padding: 15px 40px;
+                background: linear-gradient(135deg, #4ec9b0, #5dd5bd);
+                border: 2px solid rgba(78, 201, 176, 0.5);
+                box-shadow: 0 4px 12px rgba(78, 201, 176, 0.3);
+              ">
+                ⚔️ ÚTOK!
+              </button>
+            </div>
+
+            <!-- Combat Log -->
+            <div style="margin-top: 20px; padding: 15px; background: rgba(20, 16, 12, 0.3); border-radius: 8px; border: 1px solid rgba(139, 90, 43, 0.2);">
+              <div style="color: #d4a574; font-size: 13px; font-weight: 600; margin-bottom: 10px;">
+                📜 Bojový log:
+              </div>
+              <div id="dnd-combat-log" style="max-height: 150px; overflow-y: auto; color: #b89968; font-size: 13px;">
+                ${this.combat.combatLog.slice(-5).map(entry => 
+                  `<div style="padding: 6px 10px; margin: 4px 0; background: rgba(20, 16, 12, 0.4); border-radius: 4px;">${entry}</div>`
+                ).join('')}
+              </div>
+            </div>
+          </div>
+        ` : `
+          <div style="text-align: center; margin: 40px 0; padding: 30px; background: rgba(206, 145, 120, 0.1); border: 2px dashed rgba(206, 145, 120, 0.3); border-radius: 12px;">
+            <div style="font-size: 64px; margin-bottom: 15px;">🚧</div>
+            <div style="color: #ce9178; font-size: 18px; font-weight: 600; margin-bottom: 10px;">
+              ${gameTypeLabel} - Brzy dostupné!
+            </div>
+            <div style="color: #b89968; font-size: 14px; line-height: 1.6;">
+              Tento herní mód je ve vývoji.<br>
+              Pro nyní použij Piškvorky.
+            </div>
+          </div>
+        `}
 
         <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-          <button class="modal-btn modal-btn-secondary" onclick="game.fleeCombat()" style="flex: 1; max-width: 200px;">
-            🏃 Utéct (50% ztrát)
-          </button>
+          ${isImplemented ? `
+            <button class="modal-btn modal-btn-secondary" onclick="game.fleeCombat()" style="flex: 1; max-width: 200px;">
+              🏃 Utéct (50% ztrát)
+            </button>
+          ` : `
+            <button class="modal-btn modal-btn-secondary" onclick="game.closeModal('combat-modal'); game.showCombatModeSelectionModal(game.pendingThreat)" style="flex: 1; max-width: 250px;">
+              ← Zpět na výběr
+            </button>
+            <button class="modal-btn modal-btn-danger" onclick="game.closeModal('combat-modal'); game.handleCombatEnd(false)" style="flex: 1; max-width: 200px;">
+              💀 Vzdát se (penalizace)
+            </button>
+          `}
         </div>
 
-        <div style="margin-top: 15px; padding: 10px; background: rgba(20, 16, 12, 0.3); border-radius: 4px; font-size: 12px; color: #9ca3af;">
-          <strong style="color: #e8d5b7;">Pravidla:</strong> Sestav 5 symbolů v řadě (vodorovně, svisle nebo diagonálně).
-        </div>
+        ${gameType === 'tictactoe' ? `
+          <div style="margin-top: 15px; padding: 10px; background: rgba(20, 16, 12, 0.3); border-radius: 4px; font-size: 12px; color: #9ca3af;">
+            <strong style="color: #e8d5b7;">Pravidla:</strong> Sestav 5 symbolů v řadě (vodorovně, svisle nebo diagonálně).
+          </div>
+        ` : gameType === 'go' ? `
+          <div style="margin-top: 15px; padding: 10px; background: rgba(156, 220, 254, 0.15); border-radius: 4px; font-size: 12px; color: #9cdcfe;">
+            <strong style="color: #e8d5b7;">Pravidla:</strong> Obklop nepřátelské kameny (odeber jim všechny svobody) a ovládni území. 
+            <strong style="color: #4ec9b0;">Skóre = území + zajato.</strong>
+          </div>
+        ` : gameType === 'dnd' ? `
+          <div style="margin-top: 15px; padding: 10px; background: rgba(206, 145, 120, 0.15); border-radius: 4px; font-size: 12px; color: #ce9178; text-align: center;">
+            <strong>💡 Tip:</strong> Tvoje HP je odvozené od jídla (${this.state.inventory.food || 0} × 5 = ${this.combat.playerMaxHP} HP), ale <strong style="color: #4ec9b0;">jídlo se nemaže!</strong>
+          </div>
+        ` : ''}
       </div>
     `;
 
@@ -5566,6 +6402,13 @@ async backend(functionName, data = null) {
   handleCombatClick(row, col) {
     if (!this.combat.gameActive) return;
 
+    // Route to appropriate handler based on game type
+    if (this.combat.gameType === 'go') {
+      this.handleGoClick(row, col);
+      return;
+    }
+
+    // Tic-tac-toe logic
     const result = this.combat.makeMove(row, col);
 
     if (result === 'player_win') {
@@ -5576,6 +6419,205 @@ async backend(functionName, data = null) {
       this.renderCombatBoard();
       document.getElementById('combat-status').innerHTML = 
         `Nepřítel přemýšlí... ${this.combat.enemyIcon}`;
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ⚫⚪ HANDLE GO CLICK
+  // ═══════════════════════════════════════════════════════════════
+  handleGoClick(row, col) {
+    if (!this.combat.gameActive) return;
+    
+    // Player move
+    const result = this.combat.makeMove_Go(row, col, 'player');
+    
+    if (!result) return; // Invalid move
+    
+    // Reset pass count on move
+    this.combat.passCount = 0;
+    
+    // Update UI
+    this.renderCombatBoard();
+    this.renderGoStatus();
+    
+    // Check if game ended
+    if (result === 'end') {
+      const winner = this.combat.calculateGoWinner();
+      setTimeout(() => this.handleCombatEnd(winner === 'player_win'), 1000);
+      return;
+    }
+    
+    // AI move after delay
+    setTimeout(() => {
+      if (!this.combat.gameActive) return;
+      
+      const aiMove = this.combat.findGoMove();
+      if (aiMove) {
+        const aiResult = this.combat.makeMove_Go(aiMove.r, aiMove.c, 'enemy');
+        
+        // Reset pass count on move
+        this.combat.passCount = 0;
+        
+        // Update UI
+        this.renderCombatBoard();
+        this.renderGoStatus();
+        
+        // Check if game ended
+        if (aiResult === 'end') {
+          const winner = this.combat.calculateGoWinner();
+          setTimeout(() => this.handleCombatEnd(winner === 'player_win'), 1000);
+        }
+      } else {
+        // AI passes if no move found
+        this.combat.pass();
+        this.renderGoStatus();
+        
+        if (this.combat.passCount >= 2) {
+          const winner = this.combat.calculateGoWinner();
+          setTimeout(() => this.handleCombatEnd(winner === 'player_win'), 1000);
+        }
+      }
+    }, 500);
+  },
+
+  renderGoStatus() {
+    const statusEl = document.getElementById('combat-status');
+    const capturedEl = document.getElementById('go-captured');
+    const turnsEl = document.getElementById('go-turns');
+    
+    if (statusEl) {
+      statusEl.innerHTML = `Tvůj tah: ⚪`;
+    }
+    
+    if (capturedEl) {
+      capturedEl.innerHTML = `⚪ Zajato: ${this.combat.capturedStones.player} | ⚫ Zajato: ${this.combat.capturedStones.enemy}`;
+    }
+    
+    if (turnsEl) {
+      const remaining = this.combat.maxTurns - this.combat.currentTurn;
+      turnsEl.innerHTML = `Zbývá tahů: ${remaining}`;
+    }
+  },
+
+  handleGoPass() {
+    if (!this.combat.gameActive) return;
+    
+    this.combat.pass();
+    this.renderGoStatus();
+    
+    // Check if both passed
+    if (this.combat.passCount >= 2) {
+      const winner = this.combat.calculateGoWinner();
+      setTimeout(() => this.handleCombatEnd(winner === 'player_win'), 1000);
+      return;
+    }
+    
+    // AI move after delay
+    setTimeout(() => {
+      if (!this.combat.gameActive) return;
+      
+      const aiMove = this.combat.findGoMove();
+      if (aiMove) {
+        this.combat.makeMove_Go(aiMove.r, aiMove.c, 'enemy');
+        this.combat.passCount = 0;
+        this.renderCombatBoard();
+        this.renderGoStatus();
+        
+        // Check if game ended
+        if (this.combat.currentTurn >= this.combat.maxTurns) {
+          const winner = this.combat.calculateGoWinner();
+          setTimeout(() => this.handleCombatEnd(winner === 'player_win'), 1000);
+        }
+      } else {
+        this.combat.pass();
+        this.renderGoStatus();
+        
+        if (this.combat.passCount >= 2) {
+          const winner = this.combat.calculateGoWinner();
+          setTimeout(() => this.handleCombatEnd(winner === 'player_win'), 1000);
+        }
+      }
+    }, 500);
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🎲 HANDLE D&D ATTACK
+  // ═══════════════════════════════════════════════════════════════
+  handleDndAttack() {
+    if (!this.combat.gameActive || this.combat.gameType !== 'dnd') return;
+    
+    // Disable attack button temporarily
+    const btn = document.getElementById('dnd-attack-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '⚔️ Útočíš...';
+    }
+    
+    // Player attacks
+    const playerResult = this.combat.playerAttackRoll();
+    
+    // Update UI
+    this.renderDndCombat();
+    
+    // Check if enemy is defeated
+    if (this.combat.enemyHP <= 0) {
+      this.combat.gameActive = false;
+      setTimeout(() => this.handleCombatEnd(true), 1000);
+      return;
+    }
+    
+    // Enemy counter-attack after delay
+    setTimeout(() => {
+      if (!this.combat.gameActive) return;
+      
+      const enemyResult = this.combat.enemyAttackRoll();
+      
+      // Update UI
+      this.renderDndCombat();
+      
+      // Check if player is defeated
+      if (this.combat.playerHP <= 0) {
+        this.combat.gameActive = false;
+        setTimeout(() => this.handleCombatEnd(false), 1000);
+        return;
+      }
+      
+      // Re-enable attack button
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '⚔️ ÚTOK!';
+      }
+    }, 1000);
+  },
+
+  renderDndCombat() {
+    // Update HP bars
+    const playerBar = document.getElementById('player-hp-bar');
+    const enemyBar = document.getElementById('enemy-hp-bar');
+    const playerText = document.getElementById('player-hp-text');
+    const enemyText = document.getElementById('enemy-hp-text');
+    
+    if (playerBar && playerText) {
+      const playerPercent = (this.combat.playerHP / this.combat.playerMaxHP) * 100;
+      playerBar.style.width = `${playerPercent}%`;
+      playerText.innerHTML = `🧙 Ty: ${this.combat.playerHP}/${this.combat.playerMaxHP} HP`;
+    }
+    
+    if (enemyBar && enemyText) {
+      const enemyPercent = (this.combat.enemyHP / this.combat.enemyMaxHP) * 100;
+      enemyBar.style.width = `${enemyPercent}%`;
+      enemyText.innerHTML = `${this.combat.currentThreat.icon} ${this.combat.currentThreat.name}: ${this.combat.enemyHP}/${this.combat.enemyMaxHP} HP`;
+    }
+    
+    // Update combat log (show last 5 entries)
+    const logEl = document.getElementById('dnd-combat-log');
+    if (logEl) {
+      const recentLogs = this.combat.combatLog.slice(-5);
+      logEl.innerHTML = recentLogs.map(entry => 
+        `<div style="padding: 6px 10px; margin: 4px 0; background: rgba(20, 16, 12, 0.4); border-radius: 4px; font-size: 13px;">${entry}</div>`
+      ).join('');
+      // Scroll to bottom
+      logEl.scrollTop = logEl.scrollHeight;
     }
   },
 
@@ -5687,7 +6729,99 @@ async backend(functionName, data = null) {
   // 🏃 FLEE COMBAT
   // ═══════════════════════════════════════════════════════════════
   fleeCombat() {
-    if (!confirm('Opravdu chceš utéct? Utrpíš 50% ztrát z porážky!')) return;
+    // 🛡️ DEFENSIVE: Check if combat is initialized
+    if (!this.combat || !this.combat.currentThreat) {
+      console.error('❌ Combat data not initialized!');
+      this.log('⚠️ Chyba: Combat data nejsou dostupná', 'danger');
+      this.closeModal('combat-modal');
+      return;
+    }
+
+    // Show confirmation modal instead of browser confirm
+    this.showFleeConfirmModal();
+  },
+
+  showFleeConfirmModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'flee-confirm-modal';
+    
+    const threat = this.combat.currentThreat;
+    const outcome = threat.onDefeat;
+    
+    // Calculate potential losses
+    let lossDescription = [];
+    if (outcome.items) {
+      for (const [itemId, value] of Object.entries(outcome.items)) {
+        const item = this.items[itemId];
+        if (!item) continue;
+        
+        if (Array.isArray(value)) {
+          const avg = Math.floor((value[0] + value[1]) / 2 * 0.5);
+          lossDescription.push(`${item.icon} ${item.name}: ~${avg}`);
+        } else if (value < 0) {
+          const loss = Math.ceil(Math.abs(value) * 0.5);
+          lossDescription.push(`${item.icon} ${item.name}: ${loss}`);
+        }
+      }
+    }
+    
+    const casualties = outcome.casualties ? `${Math.round(outcome.casualties * 50)}%` : '0%';
+    
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-title" style="color: #e67e7b;">🏃 UTÉCT Z BOJE?</div>
+        
+        <div style="text-align: left; color: #b89968; line-height: 1.8; margin: 25px 0;">
+          
+          <!-- Warning Message -->
+          <div style="background: rgba(192, 80, 77, 0.15); padding: 20px; border-radius: 12px; border: 2px solid rgba(192, 80, 77, 0.4); margin-bottom: 20px;">
+            <p style="font-size: 16px; font-weight: 700; color: #e67e7b; margin-bottom: 12px;">
+              ⚠️ Útěk má své následky!
+            </p>
+            <p style="font-size: 14px; color: #d4a574; margin-bottom: 8px;">
+              Utrpíš <strong>50% ztrát</strong> oproti plné porážce.
+            </p>
+            <p style="font-size: 14px; color: #d4a574;">
+              Možná je lepší bojovat až do konce...
+            </p>
+          </div>
+
+          <!-- Potential Losses -->
+          <div style="background: rgba(20, 16, 12, 0.6); padding: 20px; border-radius: 12px; border: 1px solid rgba(139, 90, 43, 0.3);">
+            <p style="font-size: 15px; font-weight: 700; color: #d4a574; margin-bottom: 15px;">
+              📊 OČEKÁVANÉ ZTRÁTY (50%):
+            </p>
+            
+            <div style="font-size: 13px;">
+              ${lossDescription.length > 0 ? lossDescription.map(l => 
+                `<div style="padding: 6px 0; border-bottom: 1px solid rgba(139, 90, 43, 0.2);">${l}</div>`
+              ).join('') : '<div style="color: #8b7355;">Žádné materiální ztráty</div>'}
+              
+              <div style="padding: 8px 0; margin-top: 8px; color: #e67e7b; font-weight: 600;">
+                💀 Riziko úmrtí kolonistu: ${casualties}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-buttons">
+          <button class="modal-btn modal-btn-secondary" onclick="game.closeModal('flee-confirm-modal')">
+            ⚔️ Zůstat a bojovat
+          </button>
+          <button class="modal-btn modal-btn-danger" onclick="game.confirmFlee()" style="background: linear-gradient(135deg, #c0504d, #e67e7b); border-color: rgba(230, 126, 123, 0.5);">
+            🏃 Opravdu utéct
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+  },
+
+  confirmFlee() {
+    // Close confirmation modal
+    this.closeModal('flee-confirm-modal');
 
     const threat = this.combat.currentThreat;
     const outcome = threat.onDefeat;
@@ -5790,27 +6924,51 @@ async backend(functionName, data = null) {
               name: '🌸 Píseň Jarního Procitnutí',
               duration: 600,
               instruments: ['flute', 'harp', 'bells'],
-              tempo: 'moderate'
+              tempo: 'slow'
             }
           ],
-          summer: [{
-            name: '☀️ Tanec Slunečního Krále',
-            duration: 600,
-            instruments: ['lute', 'tambourine', 'triangle'],
-            tempo: 'lively'
-          }],
-          autumn: [{
-            name: '🍂 Balada Padajícího Listí',
-            duration: 600,
-            instruments: ['harp', 'crotals', 'sistrum'],
-            tempo: 'slow'
-          }],
-          winter: [{
-            name: '❄️ Koleda Mrazivých Nocí',
-            duration: 600,
-            instruments: ['bells', 'chimes', 'cymbals'],
-            tempo: 'solemn'
-          }]
+          summer: [
+			{
+			  name: '☀️ Tanec Slunečního Krále',
+              duration: 600,
+              instruments: ['lute', 'tambourine', 'triangle'],
+              tempo: 'lively'
+			},
+			{
+			  name: '🌸 Píseň Jarního Procitnutí2',
+              duration: 600,
+              instruments: ['flute', 'harp', 'bells'],
+              tempo: 'slow'
+            }
+		  ],
+          autumn: [
+			{
+			  name: '🍂 Balada Padajícího Listí',
+              duration: 600,
+              instruments: ['harp', 'crotals', 'sistrum'],
+              tempo: 'slow'
+			},
+			{
+              name: '🍂 Balada Padajícího Listí2',
+              duration: 600,
+              instruments: ['harp', 'crotals', 'sistrum'],
+              tempo: 'slow'
+            }
+		  ],
+          winter: [
+			{
+			  name: '❄️ Koleda Mrazivých Nocí',
+              duration: 600,
+              instruments: ['bells', 'chimes', 'cymbals'],
+              tempo: 'solemn'
+			},
+			{
+			  name: '❄️ Koleda Mrazivých Nocí2',
+              duration: 600,
+              instruments: ['bells', 'chimes', 'cymbals'],
+              tempo: 'solemn'
+			}
+		  ]
         };
         
         this.scheduledNotes = [];
@@ -6181,23 +7339,42 @@ async backend(functionName, data = null) {
         }
       }
 
-      playTrack(seasonIndex, forceFirstTrack = false) {
-        if (this.isPlaying) return;
+	  nextTrack() {
+        if (this.isMuted) return;
+        // Zavoláme playTrack s příznakem isManualSkip = true
+        this.playTrack(this.currentSeason, false, true);
+      }
+	
+	  playTrack(seasonIndex, forceFirstTrack = false, isManualSkip = false) {
+        // Pokud už hraje a NENÍ to manuální přeskočení, nic nedělej
+        if (this.isPlaying && !isManualSkip) return;
         
+        // Pokud je to manuální přeskočení, zastavíme staré tóny a timeouty
+        if (isManualSkip) {
+          if (this.trackTimeout) clearTimeout(this.trackTimeout);
+          this.stopAllNotes();
+          this.isPlaying = false;
+        }
+
         const seasons = ['spring', 'summer', 'autumn', 'winter'];
-        this.currentSeason = seasonIndex;
-        const seasonKey = seasons[this.currentSeason];
-        const playlist = this.tracks[seasonKey];
-        
-        // Vyberu track z playlistu
-        if (Array.isArray(playlist)) {
-          // Pro první spuštění nebo změnu sezóny: VŽDY první track (ambient)
-          // Pro loop: náhodný track
-          if (forceFirstTrack) {
-            this.currentTrackIndex = 0; // VŽDY první track = ambient
-          } else {
-            this.currentTrackIndex = Math.floor(Math.random() * playlist.length);
-          }
+		this.currentSeason = seasonIndex;
+		const seasonKey = seasons[this.currentSeason];
+		const playlist = this.tracks[seasonKey];
+
+		if (Array.isArray(playlist) && playlist.length > 0) {
+			// Pokud jde o manuální přeskočení, musíme zastavit aktuální produkci
+			if (isManualSkip) {
+				if (this.trackTimeout) clearTimeout(this.trackTimeout);
+				this.stopAllNotes(); // Toto zastaví aktuálně znějící tóny
+				this.isPlaying = false; 
+      
+			// Výpočet dalšího indexu
+			this.currentTrackIndex = (this.currentTrackIndex + 1) % playlist.length;
+			} else if (forceFirstTrack) {
+				this.currentTrackIndex = 0;
+			} else {
+				this.currentTrackIndex = Math.floor(Math.random() * playlist.length);
+			}
           
           const track = playlist[this.currentTrackIndex];
           

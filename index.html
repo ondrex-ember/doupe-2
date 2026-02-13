@@ -3522,10 +3522,12 @@ async backend(functionName, data = null) {
     const indicator = document.getElementById('fire-indicator');
     const statusText = indicator.querySelector('.fire-status');
     
-    if (this.state.fireActive && this.state.fireFuel > 0) {
+    if (this.state.fireActive) {
       indicator.classList.remove('inactive');
       indicator.classList.add('active');
-      statusText.textContent = `Hoří (${this.state.fireFuel}d)`;
+      statusText.textContent = this.state.fireFuel > 0 
+        ? `Hoří (${this.state.fireFuel}d)` 
+        : 'Hoří (přidej dřevo!)';
     } else {
       indicator.classList.remove('active');
       indicator.classList.add('inactive');
@@ -3725,6 +3727,12 @@ async backend(functionName, data = null) {
     this.state.guaranteedStones = 0;
     this.state.fireActive = false; // 🔥
     this.state.fireFuel = 0; // 🔥
+    
+    // 🔥 Stop fire crackling if playing
+    if (window.fireCrackle) {
+      window.fireCrackle.stop();
+    }
+    
     this.state.weatherMode = localStorage.getItem('doupe_weather_mode') || 'game'; // 🌤️
     this.state.weatherData = null;
     this.state.lastWeatherFetch = 0;
@@ -4399,9 +4407,15 @@ async backend(functionName, data = null) {
       // RNG roll
       if (Math.random() < recipe.fireChance) {
         this.state.fireActive = true;
-        this.state.fireFuel = 0; // Start with 0, need to add wood
+        this.state.fireFuel = 2; // Start with 2 days of fuel
         this.log(`🔥 Oheň vzplanul! (${recipe.fireMethod})`, 'success');
         this.showNotification('🔥 Oheň hoří!');
+        
+        // 🔥 Start fire crackling sound (if not muted)
+        const isAudioMuted = localStorage.getItem('allAudioMuted') === 'true';
+        if (window.fireCrackle && !isAudioMuted) {
+          window.fireCrackle.start();
+        }
         
         // GA tracking
         this.track('fire_started', {
@@ -4721,6 +4735,11 @@ async backend(functionName, data = null) {
         this.state.fireActive = false;
         this.log('🌫️ Oheň vyhasl!', 'warning');
         this.showNotification('💨 Oheň vyhasl!');
+        
+        // 🔥 Stop fire crackling sound
+        if (window.fireCrackle) {
+          window.fireCrackle.stop();
+        }
         
         // GA Tracking - Fire Extinguished
         this.track('fire_extinguished', {
@@ -5701,9 +5720,13 @@ async backend(functionName, data = null) {
     el.innerHTML = '';
 
     // Zobraz jen odemčené recepty
-    const availableRecipes = this.recipes.filter(r => 
-      this.state.unlockedRecipes.includes(r.id)
-    );
+    const availableRecipes = this.recipes.filter(r => {
+      // Skip fire starters if fire is already active
+      if (r.isFireStarter && this.state.fireActive) {
+        return false;
+      }
+      return this.state.unlockedRecipes.includes(r.id);
+    });
 
     if (availableRecipes.length === 0) {
       el.innerHTML = '<div class="empty-state">Zatím žádné recepty...</div>';
@@ -7787,6 +7810,118 @@ async backend(functionName, data = null) {
 	}
 
     }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 🔥 FIRE CRACKLING SOUND SYSTEM
+    // Procedurální generování praskaní ohně
+    // ═══════════════════════════════════════════════════════════════
+    
+    class FireCrackle {
+      constructor() {
+        // Použijeme stejný AudioContext jako AtmosphericMusic
+        this.audioContext = window.atmosphericMusic ? window.atmosphericMusic.audioContext : new AudioContext();
+        
+        this.masterGain = this.audioContext.createGain();
+        this.masterGain.gain.value = 0; // Start silent
+        this.masterGain.connect(this.audioContext.destination);
+        
+        this.isPlaying = false;
+        this.crackleInterval = null;
+        this.volume = 0.25; // Target volume
+      }
+      
+      // Start fire crackling
+      start() {
+        if (this.isPlaying) return;
+        
+        // Resume AudioContext if suspended (browser autoplay policy)
+        if (this.audioContext.state === 'suspended') {
+          this.audioContext.resume();
+        }
+        
+        this.isPlaying = true;
+        
+        // Fade in to target volume
+        this.masterGain.gain.setTargetAtTime(this.volume, this.audioContext.currentTime, 0.5);
+        
+        // Random crackles only (no rumble)
+        this.scheduleCrackles();
+        
+        console.log('🔥 Fire crackling started');
+      }
+      
+      // Stop fire crackling
+      stop() {
+        if (!this.isPlaying) return;
+        
+        this.isPlaying = false;
+        
+        // Fade out
+        this.masterGain.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.5);
+        
+        // Clear crackle scheduler
+        if (this.crackleInterval) {
+          clearInterval(this.crackleInterval);
+          this.crackleInterval = null;
+        }
+        
+        console.log('🔥 Fire crackling stopped');
+      }
+      
+      // Schedule random crackles
+      scheduleCrackles() {
+        this.crackleInterval = setInterval(() => {
+          if (!this.isPlaying) return;
+          
+          // Random crackle frequency (1-3 per second)
+          const numCrackles = Math.floor(Math.random() * 3) + 1;
+          
+          for (let i = 0; i < numCrackles; i++) {
+            setTimeout(() => {
+              this.playCrackle();
+            }, Math.random() * 1000); // Spread within 1 second
+          }
+        }, 1000);
+      }
+      
+      // Single crackle sound
+      playCrackle() {
+        if (!this.isPlaying) return; // Safety check
+        
+        const now = this.audioContext.currentTime;
+        
+        // Noise-based crackle
+        const bufferSize = this.audioContext.sampleRate * 0.1; // 100ms
+        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+        
+        // Generate noise with envelope
+        for (let i = 0; i < bufferSize; i++) {
+          const t = i / bufferSize;
+          const envelope = Math.exp(-t * 10); // Fast decay
+          data[i] = (Math.random() * 2 - 1) * envelope;
+        }
+        
+        const noise = this.audioContext.createBufferSource();
+        noise.buffer = buffer;
+        
+        // Bandpass filter for "woody" crackle
+        const filter = this.audioContext.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 800 + Math.random() * 1200; // 800-2000 Hz
+        filter.Q.value = 2;
+        
+        const gain = this.audioContext.createGain();
+        gain.gain.value = 0.3 + Math.random() * 0.4; // Random intensity
+        
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+        
+        noise.start(now);
+      }
+    }
+    
       // ═══════════════════════════════════════════════════════════════
       // 🎵 INITIALIZE GAME & MUSIC SYSTEM
       // ═══════════════════════════════════════════════════════════════
@@ -7822,6 +7957,11 @@ async backend(functionName, data = null) {
             window.soundEffects.isMuted = true;
           }
           
+          // 🔥 Mute fire crackle
+          if (window.fireCrackle) {
+            window.fireCrackle.stop();
+          }
+          
         } else {
           // UNMUTE ALL AUDIO
           console.log('🔊 Všechny zvuky zapnuty');
@@ -7839,6 +7979,11 @@ async backend(functionName, data = null) {
           if (window.soundEffects) {
             window.soundEffects.isMuted = false;
           }
+          
+          // 🔥 Restart fire crackle if fire is active
+          if (window.fireCrackle && game && game.state && game.state.fireActive) {
+            window.fireCrackle.start();
+          }
         }
       }
 
@@ -7851,6 +7996,9 @@ async backend(functionName, data = null) {
       window.atmosphericMusic = new AtmosphericMusic();
       soundEffects = new SoundEffects();
       window.soundEffects = soundEffects; // Make globally accessible
+      
+      // 🔥 Initialize fire crackling
+      window.fireCrackle = new FireCrackle();
 
       // 🔇 Load global mute state
       const allAudioMuted = localStorage.getItem('allAudioMuted') === 'true';
@@ -7873,5 +8021,3 @@ async backend(functionName, data = null) {
 
 </body>
 </html>
-
-

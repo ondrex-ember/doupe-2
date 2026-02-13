@@ -5452,6 +5452,15 @@ async backend(functionName, data = null) {
         }
       }
       
+      // 🔥 AUTO-START FIRE CRACKLE if fire is active
+      if (window.fireCrackle && this.state.fireActive && !window.fireCrackle.isPlaying) {
+        const audioMuted = localStorage.getItem('allAudioMuted') === 'true';
+        if (!audioMuted) {
+          console.log('🔥 Auto-starting fire crackle after Load Game');
+          window.fireCrackle.start();
+        }
+      }
+      
       // Re-render everything
       this.render();
       

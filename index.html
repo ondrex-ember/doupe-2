@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -1598,7 +1597,7 @@ button:active {
       <!-- 🎵 SOUND CONTROL -->
       <div style="display: flex; align-items: center; gap: 10px; margin: 10px 0;">
         <button id="music-toggle-btn" 
-          onclick="if(window.atmosphericMusic) atmosphericMusic.toggle()"
+          onclick="toggleAllAudio()"
           style="
             background: rgba(139, 90, 43, 0.3);
             border: 1px solid rgba(212, 165, 116, 0.4);
@@ -1932,6 +1931,26 @@ async backend(functionName, data = null) {
     wall: { name: 'Dřevěná hradba', icon: '🛡️', desc: 'Chrání před útoky', sellPrice: 120 },
     guard_tower: { name: 'Strážní věž', icon: '👁️', desc: 'Odhalí nepřátele', sellPrice: 100 },
     medicine_hut: { name: 'Lékárna', icon: '💊', desc: 'Léčí zranění', sellPrice: 80 },
+    
+    // 📚 BOOKS & KNOWLEDGE SYSTEM
+    coal: { name: 'Uhlí', icon: '⚫', desc: 'Zbytky z ohně, na psaní', sellPrice: 6 },
+    hemp: { name: 'Konopí', icon: '🌿', desc: 'Surovina pro hedvábí', sellPrice: 3 },
+    silk: { name: 'Hedvábí', icon: '🧵', desc: 'Jemná tkanina', sellPrice: 15 },
+    press: { name: 'Lis', icon: '🗜️', desc: 'Nástroj pro výrobu papíru', sellPrice: 70 },
+    paper: { name: 'Papír', icon: '📄', desc: 'Základ pro knihy', sellPrice: 8 },
+    pencil: { name: 'Tužka', icon: '✏️', desc: 'Psací nástroj z uhlí', sellPrice: 10 },
+    book: { name: 'Kniha', icon: '📕', desc: 'Uchovává znalosti', sellPrice: 60 },
+    ledger: { name: 'Účetní kniha', icon: '📚', desc: '+10% gold z obchodů', sellPrice: 120 },
+    
+    // 🛢️ STORAGE EXPANSION
+    barrel: { name: 'Sud na vodu', icon: '🛢️', desc: '+50 kapacita vody', sellPrice: 55 },
+    
+    // 🍖 COOKING SYSTEM
+    berries: { name: 'Bobule', icon: '🫐', desc: 'Čerstvé lesní bobule', sellPrice: 2 },
+    fish: { name: 'Ryba', icon: '🐟', desc: 'Čerstvá ryba', sellPrice: 6 },
+    cooked_meat: { name: 'Uvařené maso', icon: '🍖', desc: '+15 hunger (vs +10 raw)', sellPrice: 15 },
+    fish_stew: { name: 'Rybí polévka', icon: '🍲', desc: '+20 hunger +5 water', sellPrice: 20 },
+    berry_jam: { name: 'Džem z bobulí', icon: '🫙', desc: '+8 hunger, dlouhá životnost', sellPrice: 12 },
     },
 
   recipes: [
@@ -2065,6 +2084,108 @@ async backend(functionName, data = null) {
       tier: 3,
       desc: 'Vydrží přes zimu, neskazí se'
     },
+    
+    // 📚 BOOKS & KNOWLEDGE SYSTEM (Tier 3-4)
+    {
+      id: 'hemp',
+      name: 'Konopí',
+      icon: '🌿',
+      materials: { fiber: 5, water_supply: 2 },
+      result: { hemp: 3 },
+      tier: 3,
+      desc: 'Zpracované vlákna'
+    },
+    {
+      id: 'silk',
+      name: 'Hedvábí',
+      icon: '🧵',
+      materials: { hemp: 4, fiber: 8 },
+      result: { silk: 2 },
+      tier: 3,
+      desc: 'Jemná tkanina pro papír'
+    },
+    {
+      id: 'press',
+      name: 'Lis',
+      icon: '🗜️',
+      materials: { plank: 6, stone: 4, rope: 3 },
+      requires: { axe: 1 },
+      result: { press: 1 },
+      tier: 3,
+      desc: 'Pokročilý nástroj pro výrobu papíru'
+    },
+    {
+      id: 'paper',
+      name: 'Papír',
+      icon: '📄',
+      materials: { silk: 2, hemp: 3, bark: 2, water_supply: 5 },
+      requires: { press: 1 },
+      result: { paper: 5 },
+      tier: 3,
+      desc: 'Základ pro knihy'
+    },
+    {
+      id: 'pencil',
+      name: 'Tužka',
+      icon: '✏️',
+      materials: { coal: 2, stick: 1 },
+      result: { pencil: 1 },
+      tier: 3,
+      desc: 'Psací nástroj (uhlí z ohně)'
+    },
+    {
+      id: 'book',
+      name: 'Kniha',
+      icon: '📕',
+      materials: { paper: 10, leather: 2, rope: 1 },
+      requires: { pencil: 1 },
+      result: { book: 1 },
+      tier: 4,
+      desc: 'Uchovává znalosti kolonie'
+    },
+    {
+      id: 'ledger',
+      name: 'Účetní kniha',
+      icon: '📚',
+      materials: { book: 1, paper: 5 },
+      result: { ledger: 1 },
+      tier: 4,
+      unlock: 'accounting_bonus',
+      desc: '+10% gold ze všech obchodů'
+    },
+    
+    // 🍖 COOKING SYSTEM (Tier 2-3)
+    {
+      id: 'cooked_meat',
+      name: 'Uvařené maso',
+      icon: '🍖',
+      materials: { food: 2 },
+      requiresFire: true,
+      result: { cooked_meat: 1 },
+      tier: 2,
+      desc: '+15 hunger (raw má jen +10)'
+    },
+    {
+      id: 'fish_stew',
+      name: 'Rybí polévka',
+      icon: '🍲',
+      materials: { fish: 2, water_supply: 3, mushroom: 1 },
+      requiresFire: true,
+      result: { fish_stew: 1 },
+      tier: 2,
+      desc: '+20 hunger, +5 water'
+    },
+    {
+      id: 'berry_jam',
+      name: 'Džem z bobulí',
+      icon: '🫙',
+      materials: { berries: 5 },
+      requiresFire: true,
+      result: { berry_jam: 2 },
+      tier: 2,
+      desc: '+8 hunger, neplesnivějí'
+    },
+    
     // Tier 4 - Infrastruktura
     {
       id: 'storage',
@@ -2073,6 +2194,15 @@ async backend(functionName, data = null) {
       materials: { plank: 5, rope: 3 },
       result: { storage: 1 },
       tier: 4
+    },
+    {
+      id: 'barrel',
+      name: 'Sud na vodu',
+      icon: '🛢️',
+      materials: { plank: 8, rope: 3 },
+      result: { barrel: 1 },
+      tier: 4,
+      desc: '+50 kapacita vody'
     },
     {
       id: 'fireplace',
@@ -2630,8 +2760,16 @@ async backend(functionName, data = null) {
           duration: 1,
           requires: { basket: 1 },
           result: () => ({ 
-            food: Math.floor(Math.random() * 3) + 3,
+            berries: Math.floor(Math.random() * 4) + 3,
             water_supply: Math.random() > 0.5 ? Math.floor(Math.random() * 2) + 6 : 0
+          })
+        },
+        {
+          name: '🎣Chytat ryby',
+          duration: 1,
+          requires: { rope: 1 },
+          result: () => ({ 
+            fish: Math.floor(Math.random() * 3) + 2
           })
         },
         {
@@ -2998,6 +3136,14 @@ async backend(functionName, data = null) {
     this.state.maxRandomThreats = 3;
     this.state.threatCooldown = 3;
     this.state.unlockedRecipes = ['stick', 'rope', 'bowl', 'trap', 'basket'];
+    
+    // 📚 BOOKS & KNOWLEDGE SYSTEM
+    this.state.books = []; // Array of book objects: { id, title, author, pages: [] }
+    this.state.accountingBonus = false; // +10% gold when ledger crafted
+    
+    // 🛢️ STORAGE SYSTEM
+    this.state.waterCapacity = 50; // Base capacity, +50 per barrel
+    this.state.foodCapacity = 150; // Base capacity
     
     // 🌐 Environment Detection
     const environment = this.isAppsScript ? 'Apps Script (Full Features)' : 'Standalone (Local Save)';
@@ -3505,7 +3651,12 @@ async backend(functionName, data = null) {
       return;
     }
     
-    const goldEarned = item.sellPrice * quantity;
+    let goldEarned = item.sellPrice * quantity;
+    
+    // 📚 ACCOUNTING BONUS: +10% gold když máš ledger
+    if (this.state.accountingBonus) {
+      goldEarned = Math.floor(goldEarned * 1.1);
+    }
     
     // Update state
     this.removeItem(itemId, quantity);
@@ -3552,7 +3703,12 @@ async backend(functionName, data = null) {
       return;
     }
     
-    const goldNeeded = item.buyPrice * quantity;
+    let goldNeeded = item.buyPrice * quantity;
+    
+    // 📚 ACCOUNTING BONUS: -10% cena když máš ledger
+    if (this.state.accountingBonus) {
+      goldNeeded = Math.ceil(goldNeeded * 0.9);
+    }
     
     if (this.state.gold < goldNeeded) {
       this.log(`❌ Nemáš dost zlata (potřeba ${goldNeeded}g)`, 'warning');
@@ -3707,6 +3863,20 @@ async backend(functionName, data = null) {
         this.log('🏹 Lovec se připojil k doupěti!', 'success');
         this.showNotification('🎉 Lovec se připojil!');
       }
+    }
+    
+    // 📚 ACCOUNTING BONUS UNLOCK
+    if (recipe.unlock === 'accounting_bonus') {
+      this.state.accountingBonus = true;
+      this.log('📚 Účetní kniha vytvořena! +10% gold ze všech obchodů!', 'success');
+      this.showNotification('💰 +10% Gold Bonus!');
+    }
+    
+    // 🛢️ BARREL - WATER CAPACITY INCREASE
+    if (recipe.id === 'barrel') {
+      this.state.waterCapacity += 50;
+      this.log('🛢️ Sud postaven! Kapacita vody +50 (celkem: ' + this.state.waterCapacity + ')', 'success');
+      this.showNotification('🛢️ +50 Kapacita vody!');
     }
 
     this.render();
@@ -3902,11 +4072,10 @@ async backend(functionName, data = null) {
     
     // 🎵 AUTO-START MUSIC if not already playing
     if (window.atmosphericMusic && !window.atmosphericMusic.isPlaying) {
-      const musicEnabled = localStorage.getItem('musicEnabled') !== 'false';
-      if (musicEnabled) {
+      const audioMuted = localStorage.getItem('allAudioMuted') === 'true';
+      if (!audioMuted) {
         console.log('🎵 Auto-starting music (not playing)');
         window.atmosphericMusic.play(this.state.season, true); // forceFirstTrack = true
-        document.getElementById('music-toggle-btn').textContent = '🔊';
       }
     }
 
@@ -3946,6 +4115,11 @@ async backend(functionName, data = null) {
     // 🔥 FIRE DECAY
     if (this.state.fireFuel > 0) {
       this.state.fireFuel--;
+      
+      // ⚫ COAL GENERATION: Po 1 dni hoření zbydou 2 uhlí
+      this.addItem('coal', 2);
+      this.log('⚫ Z ohně zbylo uhlí (+2)', 'item');
+      
       if (this.state.fireFuel === 0) {
         this.state.fireActive = false;
         this.log('🌫️ Oheň vyhasl!', 'warning');
@@ -4655,11 +4829,10 @@ async backend(functionName, data = null) {
       
       // 🎵 AUTO-START MUSIC after loading game
       if (window.atmosphericMusic && !window.atmosphericMusic.isPlaying) {
-        const musicEnabled = localStorage.getItem('musicEnabled') !== 'false';
-        if (musicEnabled) {
+        const audioMuted = localStorage.getItem('allAudioMuted') === 'true';
+        if (!audioMuted) {
           console.log('🎵 Auto-starting music after Load Game');
           window.atmosphericMusic.play(this.state.season, true); // forceFirstTrack = true
-          document.getElementById('music-toggle-btn').textContent = '🔊';
         }
       }
       
@@ -5600,6 +5773,7 @@ async backend(functionName, data = null) {
         this.masterGain.connect(this.audioContext.destination);
         
         this.isPlaying = false;
+        this.isMuted = false; // 🔇 GLOBAL MUTE FLAG
         this.currentTrack = null;
         this.currentSeason = 0; // 0=spring, 1=summer, 2=autumn, 3=winter
         
@@ -5989,6 +6163,12 @@ async backend(functionName, data = null) {
       }
 
       play(seasonIndex = 0, forceFirstTrack = false) {
+        // 🔇 Pokud je muted, nepřehrávej
+        if (this.isMuted) {
+          console.log('🔇 Music muted, not playing');
+          return;
+        }
+        
         // Zastav všechny staré noty s fade-outem (pokud něco hraje)
         if (this.activeOscillators.length > 0) {
           this.stopAllNotes();
@@ -6039,7 +6219,8 @@ async backend(functionName, data = null) {
           const trackDuration = track.duration * 1000;
           this.trackTimeout = setTimeout(() => {
             this.isPlaying = false;
-            if (localStorage.getItem('musicEnabled') !== 'false') {
+            const audioMuted = localStorage.getItem('allAudioMuted') === 'true';
+            if (!audioMuted && !this.isMuted) {
               this.play(this.currentSeason); // Loop bez forceFirstTrack = random
             }
           }, trackDuration);
@@ -6058,7 +6239,8 @@ async backend(functionName, data = null) {
           const trackDuration = playlist.duration * 1000;
           this.trackTimeout = setTimeout(() => {
             this.isPlaying = false;
-            if (localStorage.getItem('musicEnabled') !== 'false') {
+            const audioMuted = localStorage.getItem('allAudioMuted') === 'true';
+            if (!audioMuted && !this.isMuted) {
               this.play(this.currentSeason);
             }
           }, trackDuration);
@@ -6119,12 +6301,8 @@ async backend(functionName, data = null) {
         if (this.isPlaying) {
           // Currently playing -> STOP
           this.stop();
-          localStorage.setItem('musicEnabled', 'false');
-          document.getElementById('music-toggle-btn').textContent = '🔇';
         } else {
           // Not playing -> START
-          localStorage.setItem('musicEnabled', 'true');
-          document.getElementById('music-toggle-btn').textContent = '🔊';
           this.play(this.currentSeason, true); // forceFirstTrack = true
         }
       }
@@ -6178,9 +6356,13 @@ async backend(functionName, data = null) {
         this.masterGain = this.audioContext.createGain();
         this.masterGain.gain.value = 0.3;
         this.masterGain.connect(this.audioContext.destination);
+        this.isMuted = false; // 🔇 GLOBAL MUTE FLAG
       }
 
       playSound(type) {
+        // 🔇 Pokud je muted, nepiš zvuk
+        if (this.isMuted) return;
+        
         const now = this.audioContext.currentTime;
         
         switch(type) {
@@ -6257,31 +6439,63 @@ async backend(functionName, data = null) {
           osc.stop(time + i * 0.05 + 0.1);
         }
       }
-
-      playNextDaySound(time) {
-        // Bell chime (velmi tichá verze s lineárním gain a atenuátorem)
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        const attenuator = this.audioContext.createGain(); // Extra gain stage pro jemné doladění
-        
-        osc.type = 'sine';
-        osc.frequency.value = 480;
-        
-        // První gain stage - lineární fade out (plynulejší)
-        gain.gain.setValueAtTime(0.001, time); // Sníženo z 0.08 na 0.05
-        gain.gain.linearRampToValueAtTime(0, time + 1.5); // Lineární místo exponenciálního
-        
-        // Druhý gain stage - globální attenuator
-        attenuator.gain.value = 0.1; // Další 40% redukce
-        
-        // Chain: osc → gain → attenuator → masterGain
-        osc.connect(gain);
-        gain.connect(attenuator);
-        attenuator.connect(this.masterGain);
-        
-        osc.start(time);
-        osc.stop(time + 1.5);
-      }
+		playNextDaySound(time) {
+		  // 😴 CHRÁPÁNÍ starší mužské osoby (max 2s)
+		  const duration = 1.1;
+		  
+		  // 1. White noise jako základ
+		  const bufferSize = this.audioContext.sampleRate * duration;
+		  const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+		  const data = buffer.getChannelData(0);
+		  
+		  for (let i = 0; i < bufferSize; i++) {
+			data[i] = Math.random() * 1 - 1;
+		  }
+		  
+		  const noise = this.audioContext.createBufferSource();
+		  noise.buffer = buffer;
+		  
+		  // 2. BandPass filter (80-300 Hz)
+		  const bandpass = this.audioContext.createBiquadFilter();
+		  bandpass.type = 'bandpass';
+		  bandpass.frequency.value = 150;
+		  bandpass.Q.value = 1;
+		  
+		  // 3. LowPass filter (400 Hz)
+		  const lowpass = this.audioContext.createBiquadFilter();
+		  lowpass.type = 'lowpass';
+		  lowpass.frequency.value = 200;
+		  lowpass.Q.value = 1;
+		  
+		  // 4. LFO modulace (7 Hz vibrace)
+		  const lfo = this.audioContext.createOscillator();
+		  lfo.frequency.value = 7;
+		  lfo.type = 'sine';
+		  
+		  const lfoGain = this.audioContext.createGain();
+		  lfoGain.gain.value = 0.3;
+		  
+		  // 5. Gain envelope
+		  const gain = this.audioContext.createGain();
+		  gain.gain.setValueAtTime(0, time);
+		  gain.gain.linearRampToValueAtTime(0.15, time + 0.3);
+		  gain.gain.setValueAtTime(0.15, time + 1.2);
+		  gain.gain.linearRampToValueAtTime(0, time + duration);
+		  
+		  // 6. Connect chain
+		  noise.connect(bandpass);
+		  bandpass.connect(lowpass);
+		  lowpass.connect(gain);
+		  lfo.connect(lfoGain);
+		  lfoGain.connect(gain.gain);
+		  gain.connect(this.masterGain);
+		  
+		  // 7. Start
+		  noise.start(time);
+		  lfo.start(time);
+		  noise.stop(time + duration);
+		  lfo.stop(time + duration);
+		}
 
       playCombatSound(time) {
         // Sword clash
@@ -6391,6 +6605,57 @@ async backend(functionName, data = null) {
       // ═══════════════════════════════════════════════════════════════
       // 🎵 INITIALIZE GAME & MUSIC SYSTEM
       // ═══════════════════════════════════════════════════════════════
+      
+      // ═══════════════════════════════════════════════════════════════
+      // 🔊 GLOBAL AUDIO CONTROL
+      // Ovládá VŠECHNY zvuky (hudba + sound effects)
+      // ═══════════════════════════════════════════════════════════════
+      function toggleAllAudio() {
+        const isCurrentlyMuted = localStorage.getItem('allAudioMuted') === 'true';
+        const newMutedState = !isCurrentlyMuted;
+        
+        // Update localStorage
+        localStorage.setItem('allAudioMuted', newMutedState);
+        
+        // Update button
+        document.getElementById('music-toggle-btn').textContent = newMutedState ? '🔇' : '🔊';
+        
+        if (newMutedState) {
+          // MUTE ALL AUDIO
+          console.log('🔇 Všechny zvuky vypnuty');
+          
+          // Mute music
+          if (window.atmosphericMusic) {
+            window.atmosphericMusic.isMuted = true;
+            if (window.atmosphericMusic.isPlaying) {
+              window.atmosphericMusic.stop();
+            }
+          }
+          
+          // Mute sound effects
+          if (window.soundEffects) {
+            window.soundEffects.isMuted = true;
+          }
+          
+        } else {
+          // UNMUTE ALL AUDIO
+          console.log('🔊 Všechny zvuky zapnuty');
+          
+          // Unmute music
+          if (window.atmosphericMusic) {
+            window.atmosphericMusic.isMuted = false;
+            // Auto-start music pokud hra už běží
+            if (game && game.state && game.state.day > 1) {
+              window.atmosphericMusic.play(game.state.season, true);
+            }
+          }
+          
+          // Unmute sound effects
+          if (window.soundEffects) {
+            window.soundEffects.isMuted = false;
+          }
+        }
+      }
 
     let soundEffects = null;
     window.onload = () => {
@@ -6400,13 +6665,20 @@ async backend(functionName, data = null) {
       // Initialize music system
       window.atmosphericMusic = new AtmosphericMusic();
       soundEffects = new SoundEffects();
+      window.soundEffects = soundEffects; // Make globally accessible
 
-      // Set button state based on localStorage
-      const musicEnabled = localStorage.getItem('musicEnabled') !== 'false';
-      if (musicEnabled) {
-          document.getElementById('music-toggle-btn').textContent = '🔊';
+      // 🔇 Load global mute state
+      const allAudioMuted = localStorage.getItem('allAudioMuted') === 'true';
+      
+      if (allAudioMuted) {
+        // Apply mute state
+        window.atmosphericMusic.isMuted = true;
+        window.soundEffects.isMuted = true;
+        document.getElementById('music-toggle-btn').textContent = '🔇';
       } else {
-          document.getElementById('music-toggle-btn').textContent = '🔇';
+        window.atmosphericMusic.isMuted = false;
+        window.soundEffects.isMuted = false;
+        document.getElementById('music-toggle-btn').textContent = '🔊';
       }
       
       // DON'T auto-play on load - let user start with Next Day or toggle button
@@ -6416,8 +6688,3 @@ async backend(functionName, data = null) {
 
 </body>
 </html>
-
-
-
-
-

@@ -6585,22 +6585,25 @@ async backend(functionName, data = null) {
           osc.stop(time + i * 0.08 + 0.15);
         }
       }
+	  playAlertSound(time) {
+		// Create a longer, more pleasant chime sound
+		for (let i = 0; i < 3; i++) { // Reduced number of chimes for a cleaner sound
+			const osc = this.audioContext.createOscillator();
+			const gain = this.audioContext.createGain();
+			// Use sine wave for a more pleasant chime sound
+			osc.type = 'sine';
+			// Use a lower frequency range for a deeper, more resonant chime
+			osc.frequency.value = 300 + Math.random() * 100;
+			// Set the initial gain and create a more gradual fade-out
+			gain.gain.setValueAtTime(0.2, time + i * 0.3); // Increased interval between chimes
+			gain.gain.exponentialRampToValueAtTime(0.01, time + i * 0.3 + 2.0); // Extended duration
+			osc.connect(gain);
+			gain.connect(this.masterGain);
+			osc.start(time + i * 0.3);
+			osc.stop(time + i * 0.3 + 2.0); // Extended duration
+		}
+	}
 
-      playAlertSound(time) {
-        // Warning beep
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        osc.type = 'square';
-        osc.frequency.value = 600;
-        gain.gain.setValueAtTime(0.3, time);
-        gain.gain.setValueAtTime(0, time + 0.1);
-        gain.gain.setValueAtTime(0.3, time + 0.2);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-        osc.start(time);
-        osc.stop(time + 0.4);
-      }
     }
       // ═══════════════════════════════════════════════════════════════
       // 🎵 INITIALIZE GAME & MUSIC SYSTEM

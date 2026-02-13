@@ -6906,7 +6906,7 @@ async backend(functionName, data = null) {
         
         this.masterGain = this.audioContext.createGain();
         
-        const savedVolume = localStorage.getItem('musicVolume') || 30;
+        const savedVolume = localStorage.getItem('musicVolume') || 15;
         this.masterGain.gain.value = savedVolume / 100;
         
         this.masterGain.connect(this.audioContext.destination);
@@ -7873,3 +7873,4 @@ async backend(functionName, data = null) {
 
 </body>
 </html>
+

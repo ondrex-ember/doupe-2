@@ -3629,12 +3629,11 @@ async backend(functionName, data = null) {
             Sbírej suroviny, craftuj nástroje, přijímej obyvatele a překonávej roční období.
           </p>
           <b><p>v. 2.35g</p></b>
-            🔥 <strong>Minihry, recepty, oheň</strong><br>
+            🔥 <strong>Nové minihry a recepty</strong><br>
             • Nové craft recipes - to musíš zkusit<br>
 			• Nové minihry - k Piškvorkám přibyla hra GO<br>
 			• Nové minihry - basic D&D diceroll<br>
-			• Nové vlastnosti ohně (zvuk apod.)<br>
-			• Ladění aplikace, opravy
+			• Ladění aplikace
           <b><p>v. 2.12m</p></b>
             🔥 <strong>Nové features</strong><br>
             • Potvrzení restartu hry a stats<br>
@@ -7820,152 +7819,231 @@ async backend(functionName, data = null) {
 	}
 
     }
+	  class FireCrackle {
+		constructor() {
+		  // AudioContext zůstává stejný
+		  this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+			sampleRate: 44100,
+			latencyHint: 'playback'
+		  });
+		  
+		  this.masterGain = this.audioContext.createGain();
+		  this.masterGain.gain.value = 0;
+		  this.masterGain.connect(this.audioContext.destination);
+		  
+		  this.isPlaying = false;
+		  this.crackleInterval = null; // Ponecháno jméno pro kompatibilitu
+		  
+		  // Ponechána proměnná volume pro případné externí ovládání
+		  this.volume = 0.4; 
+	  
+		  // Uložiště pro smyčky (nové vnitřní proměnné, nic nerozbijí)
+		  this.loops = {};
+		}
+		
+		start() {
+		  if (this.isPlaying) return;
+		  
+		  // Resume pro prohlížeče
+		  if (this.audioContext.state === 'suspended') {
+			this.audioContext.resume();
+		  }
+		  
+		  this.isPlaying = true;
+		  
+		  // Fade in (používá this.volume)
+		  this.masterGain.gain.cancelScheduledValues(this.audioContext.currentTime);
+		  this.masterGain.gain.setTargetAtTime(this.volume, this.audioContext.currentTime, 0.5);
+		  
+		  // Spuštění nových vrstev zvuku
+		  this.startRumble(); // Hukot (nové)
+		  this.startHiss();   // Syčení (nové)
+		  
+		  // Spuštění plánovače (nahrazuje původní scheduleCrackles, ale dělá víc věcí)
+		  this.scheduleRandomEvents();
+		  
+		  console.log('🔥 FireCrackle started (Deep version)');
+		}
+		
+		stop() {
+		  if (!this.isPlaying) return;
+		  
+		  this.isPlaying = false;
+		  
+		  // Fade out
+		  this.masterGain.gain.cancelScheduledValues(this.audioContext.currentTime);
+		  this.masterGain.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.5);
+		  
+		  // Zastavení smyček s malým zpožděním (aby dozněly)
+		  setTimeout(() => {
+			if (this.loops.rumble) { this.loops.rumble.stop(); this.loops.rumble = null; }
+			if (this.loops.hiss) { this.loops.hiss.stop(); this.loops.hiss = null; }
+		  }, 600);
+		  
+		  // Vyčištění intervalu
+		  if (this.crackleInterval) {
+			clearInterval(this.crackleInterval);
+			this.crackleInterval = null;
+		  }
+		  
+		  console.log('✅ FireCrackle stopped');
+		}
+	  
+		// --- INTERNÍ METODY (Hra je nevolá, takže je jedno, že jsou nové) ---
+	  
+		scheduleRandomEvents() {
+		  // Interval pro náhodné události
+		  this.crackleInterval = setInterval(() => {
+			if (!this.isPlaying) return;
+			const now = this.audioContext.currentTime;
+	  
+			// 1. Praskání (časté)
+			if (Math.random() > 0.9) {
+			   // Rozlišení typu prasknutí (ostré vs. hluboké)
+			   const type = Math.random() > 0.7 ? 'deep' : 'sharp';
+			   this.playCrackle(type, now + Math.random() * 0.5);
+			}
+	  
+			// 2. Pískání dřeva (velmi vzácné - jednou za cca 40-60s)
+			// Šance nastavena tak, aby to neotravovalo
+			if (Math.random() < 0.01) { 
+			  this.playWhistle(now);
+			}
+		  }, 500);
+		}
+	  
+		playCrackle(type, time) {
+			// Původní logika praskání, ale vylepšená o typy
+			const bufferSize = this.audioContext.sampleRate * 0.1; 
+			const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+			const data = buffer.getChannelData(0);
+	  
+			// Envelope
+			const decay = type === 'sharp' ? 10 : 5;
+			for (let i = 0; i < bufferSize; i++) {
+				data[i] = (Math.random() * 2 - 1) * Math.exp(-(i / bufferSize) * decay);
+			}
+	  
+			const noise = this.audioContext.createBufferSource();
+			noise.buffer = buffer;
+	  
+			const filter = this.audioContext.createBiquadFilter();
+			filter.type = 'bandpass';
+			
+			// Rozdílné filtry pro různé praskání
+			if (type === 'sharp') {
+				filter.frequency.value = 1300 + Math.random() * 1000; 
+				filter.Q.value = 1;
+			} else {
+				filter.frequency.value = 150 + Math.random() * 500; 
+				filter.Q.value = 2; 
+			}
+	  
+			const gain = this.audioContext.createGain();
+			gain.gain.value = (type === 'sharp' ? 0.3 : 0.5) + Math.random() * 0.3;
+	  
+			noise.connect(filter);
+			filter.connect(gain);
+			gain.connect(this.masterGain);
+			noise.start(time);
+		}
+	  
+		playWhistle(time) {
+			// DÉLKA: Náhodně mezi 0.8 a 1.5 sekundy (přirozené odfouknutí)
+			const duration = 0.5 + Math.random() * 0.8;
+			
+			// 1. Generování šumu (páry)
+			const bufferSize = this.audioContext.sampleRate * duration;
+			const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+			const data = buffer.getChannelData(0);
+			for (let i = 0; i < bufferSize; i++) {
+				data[i] = Math.random() * 2 - 1;
+			}
+			
+			const noise = this.audioContext.createBufferSource();
+			noise.buffer = buffer;
+
+			// 2. FILTR: "Dusivý" charakter (Bandpass)
+			const filter = this.audioContext.createBiquadFilter();
+			filter.type = 'bandpass';
+			// Frekvence: 400Hz (hluboké) -> 900Hz (střední). Žádné výšky.
+			filter.frequency.setValueAtTime(300, time);
+			filter.frequency.linearRampToValueAtTime(800, time + duration);
+			filter.Q.value = 0.7; // Široké pásmo, aby to znělo plně
+
+			// 3. HLASITOST: Rychlý nástup, plynulý konec
+			const gain = this.audioContext.createGain();
+			gain.gain.setValueAtTime(0, time);
+			gain.gain.linearRampToValueAtTime(0.2, time + 0.2); // Sykne to nahlas
+			gain.gain.exponentialRampToValueAtTime(0.02, time + duration); // A vytratí se
+
+			noise.connect(filter);
+			filter.connect(gain);
+			gain.connect(this.masterGain);
+			
+			noise.start(time);
+		}
+	  
+		startRumble() {
+			// Generátor hlubokého hukotu
+			const bufferSize = this.audioContext.sampleRate * 2;
+			const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+			const data = buffer.getChannelData(0);
+			let lastOut = 0;
+			for (let i = 0; i < bufferSize; i++) {
+				const white = Math.random() * 2 - 1;
+				data[i] = (lastOut + (0.02 * white)) / 1.02;
+				lastOut = data[i];
+				data[i] *= 3.5; 
+			}
+			const noise = this.audioContext.createBufferSource();
+			noise.buffer = buffer;
+			noise.loop = true;
+			
+			const filter = this.audioContext.createBiquadFilter();
+			filter.type = 'lowpass';
+			filter.frequency.value = 180;
+			
+			const gain = this.audioContext.createGain();
+			gain.gain.value = 0.3; // Hlasitost basů
+	  
+			noise.connect(filter);
+			filter.connect(gain);
+			gain.connect(this.masterGain);
+			noise.start();
+			this.loops.rumble = noise;
+		}
+	  
+		startHiss() {
+			// Generátor syčení
+			const bufferSize = this.audioContext.sampleRate * 2;
+			const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+			const data = buffer.getChannelData(0);
+			let lastOut = 0;
+			for (let i = 0; i < bufferSize; i++) {
+				 let white = Math.random() * 2 - 1;
+				 data[i] = (lastOut + (0.02 * white)) / 1.02; 
+				 lastOut = data[i]; 
+			}
+			const noise = this.audioContext.createBufferSource();
+			noise.buffer = buffer;
+			noise.loop = true;
+	  
+			const filter = this.audioContext.createBiquadFilter();
+			filter.type = 'highpass';
+			filter.frequency.value = 1500; 
+	  
+			const gain = this.audioContext.createGain();
+			gain.gain.value = 0.08; 
+	  
+			noise.connect(filter);
+			filter.connect(gain);
+			gain.connect(this.masterGain);
+			noise.start();
+			this.loops.hiss = noise;
+		}
+	}
     
-    // ═══════════════════════════════════════════════════════════════
-    // 🔥 FIRE CRACKLING SOUND SYSTEM
-    // Procedurální generování praskaní ohně
-    // ═══════════════════════════════════════════════════════════════
-    
-    class FireCrackle {
-      constructor() {
-        // Create dedicated AudioContext for fire sounds
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-          sampleRate: 44100,
-          latencyHint: 'playback'
-        });
-        
-        console.log('🔥 FireCrackle: Created dedicated AudioContext');
-        
-        this.masterGain = this.audioContext.createGain();
-        this.masterGain.gain.value = 0; // Start silent
-        this.masterGain.connect(this.audioContext.destination);
-        
-        this.isPlaying = false;
-        this.crackleInterval = null;
-        this.volume = 0.25; // Target volume
-      }
-      
-      // Start fire crackling
-      start() {
-        console.log('🔥 FireCrackle.start() called, isPlaying:', this.isPlaying);
-        
-        if (this.isPlaying) {
-          console.log('⚠️ Already playing, skipping start');
-          return;
-        }
-        
-        // Resume AudioContext if suspended (browser autoplay policy)
-        if (this.audioContext.state === 'suspended') {
-          console.log('🔊 Resuming suspended AudioContext');
-          this.audioContext.resume();
-        }
-        
-        console.log('🎚️ AudioContext state:', this.audioContext.state);
-        console.log('🎚️ Current gain value:', this.masterGain.gain.value);
-        
-        this.isPlaying = true;
-        
-        // Cancel any previous scheduled values and fade in
-        this.masterGain.gain.cancelScheduledValues(this.audioContext.currentTime);
-        this.masterGain.gain.setTargetAtTime(this.volume, this.audioContext.currentTime, 0.5);
-        
-        console.log('🎚️ Setting gain to:', this.volume);
-        
-        // Random crackles only (no rumble)
-        this.scheduleCrackles();
-        
-        console.log('✅ Fire crackling started, interval ID:', this.crackleInterval);
-      }
-      
-      // Stop fire crackling
-      stop() {
-        console.log('🛑 FireCrackle.stop() called, isPlaying:', this.isPlaying);
-        
-        if (!this.isPlaying) {
-          console.log('⚠️ Already stopped, skipping');
-          return;
-        }
-        
-        this.isPlaying = false;
-        
-        // Cancel any scheduled ramps and fade out
-        this.masterGain.gain.cancelScheduledValues(this.audioContext.currentTime);
-        this.masterGain.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.5);
-        
-        console.log('🎚️ Fading out to 0');
-        
-        // Clear crackle scheduler
-        if (this.crackleInterval) {
-          clearInterval(this.crackleInterval);
-          console.log('⏹️ Cleared interval:', this.crackleInterval);
-          this.crackleInterval = null;
-        }
-        
-        console.log('✅ Fire crackling stopped');
-      }
-      
-      // Schedule random crackles
-      scheduleCrackles() {
-        console.log('⏰ scheduleCrackles() called');
-        
-        this.crackleInterval = setInterval(() => {
-          if (!this.isPlaying) {
-            console.log('⚠️ Crackle fired but not playing, skipping');
-            return;
-          }
-          
-          // Random crackle frequency (1-3 per second)
-          const numCrackles = Math.floor(Math.random() * 3) + 1;
-          
-          console.log(`🔊 Playing ${numCrackles} crackles`);
-          
-          for (let i = 0; i < numCrackles; i++) {
-            setTimeout(() => {
-              this.playCrackle();
-            }, Math.random() * 1000); // Spread within 1 second
-          }
-        }, 1000);
-        
-        console.log('⏰ Interval created:', this.crackleInterval);
-      }
-      
-      // Single crackle sound
-      playCrackle() {
-        if (!this.isPlaying) return; // Safety check
-        
-        const now = this.audioContext.currentTime;
-        
-        // Noise-based crackle
-        const bufferSize = this.audioContext.sampleRate * 0.1; // 100ms
-        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
-        const data = buffer.getChannelData(0);
-        
-        // Generate noise with envelope
-        for (let i = 0; i < bufferSize; i++) {
-          const t = i / bufferSize;
-          const envelope = Math.exp(-t * 10); // Fast decay
-          data[i] = (Math.random() * 2 - 1) * envelope;
-        }
-        
-        const noise = this.audioContext.createBufferSource();
-        noise.buffer = buffer;
-        
-        // Bandpass filter for "woody" crackle
-        const filter = this.audioContext.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.value = 800 + Math.random() * 1200; // 800-2000 Hz
-        filter.Q.value = 2;
-        
-        const gain = this.audioContext.createGain();
-        gain.gain.value = 0.3 + Math.random() * 0.4; // Random intensity
-        
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.masterGain);
-        
-        noise.start(now);
-      }
-    }
     
       // ═══════════════════════════════════════════════════════════════
       // 🎵 INITIALIZE GAME & MUSIC SYSTEM
@@ -8066,4 +8144,3 @@ async backend(functionName, data = null) {
 
 </body>
 </html>
-

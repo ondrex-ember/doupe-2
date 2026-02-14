@@ -1582,7 +1582,7 @@ button:active {
        ═══════════════════════════════════════════════════════════════ -->
   <div id="footer">
     <div>
-      <span class="footer-title">🏠 DOUPĚ v2.12m</span>
+      <span class="footer-title">🏠 DOUPĚ v2.35g</span>
       <br>
       <!-- 🌤️ WEATHER WIDGET -->
       <span class="weather-widget" id="weather-widget">
@@ -7827,8 +7827,13 @@ async backend(functionName, data = null) {
     
     class FireCrackle {
       constructor() {
-        // Použijeme stejný AudioContext jako AtmosphericMusic
-        this.audioContext = window.atmosphericMusic ? window.atmosphericMusic.audioContext : new AudioContext();
+        // Create dedicated AudioContext for fire sounds
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+          sampleRate: 44100,
+          latencyHint: 'playback'
+        });
+        
+        console.log('🔥 FireCrackle: Created dedicated AudioContext');
         
         this.masterGain = this.audioContext.createGain();
         this.masterGain.gain.value = 0; // Start silent
@@ -7841,49 +7846,77 @@ async backend(functionName, data = null) {
       
       // Start fire crackling
       start() {
-        if (this.isPlaying) return;
+        console.log('🔥 FireCrackle.start() called, isPlaying:', this.isPlaying);
+        
+        if (this.isPlaying) {
+          console.log('⚠️ Already playing, skipping start');
+          return;
+        }
         
         // Resume AudioContext if suspended (browser autoplay policy)
         if (this.audioContext.state === 'suspended') {
+          console.log('🔊 Resuming suspended AudioContext');
           this.audioContext.resume();
         }
         
+        console.log('🎚️ AudioContext state:', this.audioContext.state);
+        console.log('🎚️ Current gain value:', this.masterGain.gain.value);
+        
         this.isPlaying = true;
         
-        // Fade in to target volume
+        // Cancel any previous scheduled values and fade in
+        this.masterGain.gain.cancelScheduledValues(this.audioContext.currentTime);
         this.masterGain.gain.setTargetAtTime(this.volume, this.audioContext.currentTime, 0.5);
+        
+        console.log('🎚️ Setting gain to:', this.volume);
         
         // Random crackles only (no rumble)
         this.scheduleCrackles();
         
-        console.log('🔥 Fire crackling started');
+        console.log('✅ Fire crackling started, interval ID:', this.crackleInterval);
       }
       
       // Stop fire crackling
       stop() {
-        if (!this.isPlaying) return;
+        console.log('🛑 FireCrackle.stop() called, isPlaying:', this.isPlaying);
+        
+        if (!this.isPlaying) {
+          console.log('⚠️ Already stopped, skipping');
+          return;
+        }
         
         this.isPlaying = false;
         
-        // Fade out
+        // Cancel any scheduled ramps and fade out
+        this.masterGain.gain.cancelScheduledValues(this.audioContext.currentTime);
         this.masterGain.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.5);
+        
+        console.log('🎚️ Fading out to 0');
         
         // Clear crackle scheduler
         if (this.crackleInterval) {
           clearInterval(this.crackleInterval);
+          console.log('⏹️ Cleared interval:', this.crackleInterval);
           this.crackleInterval = null;
         }
         
-        console.log('🔥 Fire crackling stopped');
+        console.log('✅ Fire crackling stopped');
       }
       
       // Schedule random crackles
       scheduleCrackles() {
+        console.log('⏰ scheduleCrackles() called');
+        
         this.crackleInterval = setInterval(() => {
-          if (!this.isPlaying) return;
+          if (!this.isPlaying) {
+            console.log('⚠️ Crackle fired but not playing, skipping');
+            return;
+          }
           
           // Random crackle frequency (1-3 per second)
           const numCrackles = Math.floor(Math.random() * 3) + 1;
+          
+          console.log(`🔊 Playing ${numCrackles} crackles`);
           
           for (let i = 0; i < numCrackles; i++) {
             setTimeout(() => {
@@ -7891,6 +7924,8 @@ async backend(functionName, data = null) {
             }, Math.random() * 1000); // Spread within 1 second
           }
         }, 1000);
+        
+        console.log('⏰ Interval created:', this.crackleInterval);
       }
       
       // Single crackle sound

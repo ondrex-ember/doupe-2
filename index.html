@@ -1473,6 +1473,85 @@ button:active {
   100% { transform: translateX(-50%); }
 }
 
+/* 📜 SCRIPTORIUM WELCOME MODAL */
+#scriptorium-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 99999;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#scriptorium-modal-overlay.active {
+  display: flex;
+}
+#scriptorium-modal {
+  background: linear-gradient(135deg, #1a1208 0%, #2a1f0e 100%);
+  border: 1px solid rgba(212,165,116,0.5);
+  border-radius: 12px;
+  padding: 28px 24px 22px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(139,90,43,0.4);
+  position: relative;
+}
+#scriptorium-modal .sm-icon {
+  font-size: 42px;
+  margin-bottom: 10px;
+  display: block;
+}
+#scriptorium-modal .sm-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #e8d5b7;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+#scriptorium-modal .sm-body {
+  font-family: 'Crimson Pro', serif;
+  font-size: 15px;
+  color: #b8a48a;
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+#scriptorium-modal .sm-cta {
+  display: inline-block;
+  background: linear-gradient(135deg, #8b5a2b, #6b4020);
+  color: #e8d5b7;
+  text-decoration: none;
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(212,165,116,0.5);
+  cursor: pointer;
+  transition: all 0.25s;
+  margin-bottom: 10px;
+  display: block;
+}
+#scriptorium-modal .sm-cta:hover {
+  background: linear-gradient(135deg, #a06030, #7b4f28);
+  border-color: rgba(212,165,116,0.8);
+  transform: translateY(-1px);
+}
+#scriptorium-modal .sm-dismiss {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: #6b5a45;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 6px;
+  transition: color 0.2s;
+}
+#scriptorium-modal .sm-dismiss:hover {
+  color: #9a8670;
+}
 </style>
 </head>
 
@@ -1675,9 +1754,25 @@ button:active {
       <span class="footer-link" onclick="game.showLeaderboard()">📊 Žebříček</span>
       <span style="opacity: 0.5;"> • </span>
       <span class="footer-link" onclick="game.showAbout()">ℹ️ O hře</span>
+      <span style="opacity: 0.5;"> • </span>
+      <a class="footer-link" href="https://myscriptorium.cz" target="_blank" style="text-decoration:none;">📜 Scriptorium</a>
     </div>
   </div>
 
+</div>
+
+<!-- 📜 SCRIPTORIUM WELCOME MODAL -->
+<div id="scriptorium-modal-overlay" onclick="if(event.target===this) closeScriptoriumModal()">
+  <div id="scriptorium-modal">
+    <span class="sm-icon">📜</span>
+    <div class="sm-title">Scriptorium</div>
+    <div class="sm-body">
+      Vžijte se do role klášterního skriptora v Olomouci Léta Páně 1465.<br><br>
+      Středověká idle hra o střetu skriptorů, mnichů a tiskařů.
+    </div>
+    <a class="sm-cta" href="https://myscriptorium.cz" target="_blank" onclick="closeScriptoriumModal()">Hrát Scriptorium →</a>
+    <button class="sm-dismiss" onclick="closeScriptoriumModal()">Zůstat v Doupě</button>
+  </div>
 </div>
 
 <script>
@@ -8139,6 +8234,19 @@ async backend(functionName, data = null) {
       
       // DON'T auto-play on load - let user start with Next Day or toggle button
     }
+    // 📜 SCRIPTORIUM WELCOME MODAL
+    function showScriptoriumModal() {
+      if (localStorage.getItem('nidus_welcome_shown')) return;
+      document.getElementById('scriptorium-modal-overlay').classList.add('active');
+      document.body.classList.add('modal-open');
+    }
+    function closeScriptoriumModal() {
+      localStorage.setItem('nidus_welcome_shown', '1');
+      document.getElementById('scriptorium-modal-overlay').classList.remove('active');
+      document.body.classList.remove('modal-open');
+    }
+    setTimeout(showScriptoriumModal, 1200);
+
     </script>  <!-- KONEC JavaScriptu -->
 
 
